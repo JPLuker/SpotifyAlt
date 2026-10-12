@@ -5,21 +5,27 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.media.MediaMetadata
-import android.media.session.PlaybackState
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import androidx.core.app.NotificationCompat
-import androidx.media.app.NotificationCompat.MediaStyle
-import androidx.media.session.MediaButtonReceiver
+import android.os.SystemClock
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.core.app.NotificationCompat
+import androidx.media.app.NotificationCompat.MediaStyle
+import org.json.JSONObject
+import java.net.URL
 import kotlin.concurrent.thread
 
 class SpotifyAltService : Service() {
     companion object {
+        const val ACTION_START = "com.jpluker.spotifyalt.START"
+        const val ACTION_UPDATE = "com.jpluker.spotifyalt.UPDATE"
+        const val EXTRA_STATE = "media_state"
+
         private const val CHANNEL_ID = "spotifyalt_media"
         private const val NOTIFICATION_ID = 1701
         private const val ACTION_PREVIOUS = "com.jpluker.spotifyalt.PREVIOUS"
@@ -30,127 +36,174 @@ class SpotifyAltService : Service() {
 
     private lateinit var session: MediaSessionCompat
     private val handler = Handler(Looper.getMainLooper())
+
+    @Volatile private var title = "SpotifyAlt"
+    @Volatile private var artist = "Waiting for web player"
+    @Volatile private var trackUri: String? = null
+    @Volatile private var artUrl: String? = null
+    @Volatile private var artwork: Bitmap? = null
     @Volatile private var liked = false
-    @Volatile private var currentUri: String? = null
-    private val observer = { refreshFromSpotify() }
+    @Volatile private var playing = false
+    @Volatile private var positionMs = 0L
+    @Volatile private var durationMs = 0L
 
     override fun onCreate() {
         super.onCreate()
         createChannel()
-        session = MediaSessionCompat(this, "SpotifyAlt").apply {
+
+        session = MediaSessionCompat(this, "SpotifyAltWebPlayer").apply {
             setCallback(object : MediaSessionCompat.Callback() {
-                override fun onPlay() = transport { it.play() }
-                override fun onPause() = transport { it.pause() }
-                override fun onSkipToNext() = transport { it.skipToNext() }
-                override fun onSkipToPrevious() = transport { it.skipToPrevious() }
+                override fun onPlay() = sendToWeb("play")
+                override fun onPause() = sendToWeb("pause")
+                override fun onSkipToNext() = sendToWeb("next")
+                override fun onSkipToPrevious() = sendToWeb("previous")
+                override fun onSeekTo(pos: Long) = sendToWeb("seek:$pos")
+                override fun onCustomAction(action: String?, extras: android.os.Bundle?) {
+                    if (action == ACTION_HEART) toggleHeart()
+                }
             })
+            setSessionActivity(contentIntent())
             isActive = true
         }
-        PlaybackBridge.addObserver(observer)
-        startForeground(NOTIFICATION_ID, buildNotification("Waiting for Spotify", "Start playback in Spotify"))
-        schedulePoll()
-    }
 
-    override fun onDestroy() {
-        PlaybackBridge.removeObserver(observer)
-        handler.removeCallbacksAndMessages(null)
-        session.release()
-        super.onDestroy()
+        publishState()
+        startForeground(NOTIFICATION_ID, buildNotification())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_PREVIOUS -> transport { it.skipToPrevious() }
-            ACTION_TOGGLE -> {
-                val state = PlaybackBridge.controller()?.playbackState?.state
-                transport { if (state == PlaybackState.STATE_PLAYING) it.pause() else it.play() }
-            }
-            ACTION_NEXT -> transport { it.skipToNext() }
+            ACTION_UPDATE -> intent.getStringExtra(EXTRA_STATE)?.let(::applyWebState)
+            ACTION_PREVIOUS -> sendToWeb("previous")
+            ACTION_TOGGLE -> sendToWeb(if (playing) "pause" else "play")
+            ACTION_NEXT -> sendToWeb("next")
             ACTION_HEART -> toggleHeart()
         }
-        refreshFromSpotify()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun transport(action: (android.media.session.MediaController.TransportControls) -> Unit) {
-        PlaybackBridge.controller()?.transportControls?.let(action)
+    override fun onDestroy() {
+        session.isActive = false
+        session.release()
+        super.onDestroy()
     }
 
-    private fun schedulePoll() {
-        handler.post(object : Runnable {
-            override fun run() {
-                refreshFromSpotify()
-                handler.postDelayed(this, 5000)
-            }
-        })
-    }
+    private fun applyWebState(raw: String) {
+        val json = runCatching { JSONObject(raw) }.getOrNull() ?: return
+        title = json.optString("title", title).ifBlank { "SpotifyAlt" }
+        artist = json.optString("artist", artist).ifBlank { "Unknown artist" }
+        trackUri = json.optString("uri").takeIf { it.startsWith("spotify:track:") }
+        liked = json.optBoolean("liked", liked)
+        playing = json.optBoolean("playing", false)
+        positionMs = json.optLong("positionMs", 0L).coerceAtLeast(0L)
+        durationMs = json.optLong("durationMs", 0L).coerceAtLeast(0L)
 
-    private fun refreshFromSpotify() {
-        val controller = PlaybackBridge.controller()
-        val metadata = controller?.metadata
-        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Waiting for Spotify"
-        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "Start playback in Spotify"
-        val playing = controller?.playbackState?.state == PlaybackState.STATE_PLAYING
-
-        session.setMetadata(MediaMetadataCompat.Builder()
-            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-            .build())
-        session.setPlaybackState(PlaybackStateCompat.Builder()
-            .setActions(
-                PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-            )
-            .setState(if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED, 0L, 1f)
-            .build())
-
-        updateNotification(title, artist, playing)
-
-        thread(name = "spotifyalt-library-state") {
-            val track = runCatching { SpotifyApi.currentTrack(this) }.getOrNull() ?: return@thread
-            val newLiked = runCatching { SpotifyApi.isSaved(this, track.uri) }.getOrDefault(false)
-            currentUri = track.uri
-            if (newLiked != liked) {
-                liked = newLiked
-                handler.post { updateNotification(title, artist, playing) }
-            }
+        val newArtUrl = json.optString("artUrl").takeIf { it.startsWith("https://") }
+        if (newArtUrl != artUrl) {
+            artUrl = newArtUrl
+            artwork = null
+            if (newArtUrl != null) loadArtwork(newArtUrl)
         }
+
+        publishState()
+        updateNotification()
+    }
+
+    private fun sendToWeb(command: String) {
+        WebRuntimeBridge.send(command)
     }
 
     private fun toggleHeart() {
+        val uri = trackUri ?: return
+        val target = !liked
         thread(name = "spotifyalt-heart") {
-            val track = runCatching { SpotifyApi.currentTrack(this) }.getOrNull() ?: return@thread
-            val target = !runCatching { SpotifyApi.isSaved(this, track.uri) }.getOrDefault(false)
-            if (runCatching { SpotifyApi.setSaved(this, track.uri, target) }.getOrDefault(false)) {
-                currentUri = track.uri
-                liked = target
-                handler.post { refreshFromSpotify() }
+            val changed = runCatching { SpotifyApi.setSaved(this, uri, target) }.getOrDefault(false)
+            if (!changed) return@thread
+
+            liked = target
+            WebRuntimeBridge.send("liked:$target")
+            handler.post {
+                publishState()
+                updateNotification()
             }
         }
     }
 
-    private fun updateNotification(title: String, artist: String, playing: Boolean) {
-        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, buildNotification(title, artist, playing))
+    private fun publishState() {
+        val actions =
+            PlaybackStateCompat.ACTION_PLAY or
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                PlaybackStateCompat.ACTION_SEEK_TO
+
+        val heartAction = PlaybackStateCompat.CustomAction.Builder(
+            ACTION_HEART,
+            if (liked) "Remove from Liked Songs" else "Add to Liked Songs",
+            if (liked) R.drawable.ic_heart else R.drawable.ic_heart_outline
+        ).build()
+
+        session.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, trackUri)
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs)
+                .apply {
+                    artwork?.let { putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it) }
+                }
+                .build()
+        )
+
+        session.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(actions)
+                .addCustomAction(heartAction)
+                .setState(
+                    if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
+                    positionMs,
+                    if (playing) 1f else 0f,
+                    SystemClock.elapsedRealtime()
+                )
+                .build()
+        )
     }
 
-    private fun buildNotification(title: String, artist: String, playing: Boolean = false) =
-        NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(title)
-            .setContentText(artist)
-            .setOnlyAlertOnce(true)
-            .setSilent(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(playing)
-            .addAction(android.R.drawable.ic_media_previous, "Previous", action(ACTION_PREVIOUS, 1))
-            .addAction(if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play, if (playing) "Pause" else "Play", action(ACTION_TOGGLE, 2))
-            .addAction(android.R.drawable.ic_media_next, "Next", action(ACTION_NEXT, 3))
-            .addAction(if (liked) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off, if (liked) "Unlike" else "Like", action(ACTION_HEART, 4))
-            .setStyle(MediaStyle().setMediaSession(session.sessionToken).setShowActionsInCompactView(1, 3, 2))
-            .build()
+    private fun updateNotification() {
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, buildNotification())
+    }
+
+    private fun buildNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
+        .setSmallIcon(android.R.drawable.ic_media_play)
+        .setContentIntent(contentIntent())
+        .setContentTitle(title)
+        .setContentText(artist)
+        .setLargeIcon(artwork)
+        .setOnlyAlertOnce(true)
+        .setSilent(true)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        .setOngoing(playing)
+        .addAction(
+            if (liked) R.drawable.ic_heart else R.drawable.ic_heart_outline,
+            if (liked) "Unlike" else "Like",
+            action(ACTION_HEART, 4)
+        )
+        .addAction(android.R.drawable.ic_media_previous, "Previous", action(ACTION_PREVIOUS, 1))
+        .addAction(
+            if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+            if (playing) "Pause" else "Play",
+            action(ACTION_TOGGLE, 2)
+        )
+        .addAction(android.R.drawable.ic_media_next, "Next", action(ACTION_NEXT, 3))
+        .setStyle(
+            MediaStyle()
+                .setMediaSession(session.sessionToken)
+                .setShowActionsInCompactView(0, 2, 3)
+        )
+        .build()
 
     private fun action(action: String, requestCode: Int): PendingIntent =
         PendingIntent.getService(
@@ -160,8 +213,38 @@ class SpotifyAltService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+    private fun contentIntent(): PendingIntent = PendingIntent.getActivity(
+        this,
+        0,
+        Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    private fun loadArtwork(url: String) {
+        thread(name = "spotifyalt-artwork") {
+            val bitmap = runCatching {
+                URL(url).openStream().use(BitmapFactory::decodeStream)
+            }.getOrNull() ?: return@thread
+
+            if (artUrl != url) return@thread
+            artwork = bitmap
+            handler.post {
+                publishState()
+                updateNotification()
+            }
+        }
+    }
+
     private fun createChannel() {
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "SpotifyAlt media controls", NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                "SpotifyAlt media controls",
+                NotificationManager.IMPORTANCE_LOW
+            )
+        )
     }
 }
