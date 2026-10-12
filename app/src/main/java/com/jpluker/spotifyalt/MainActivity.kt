@@ -5,7 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
@@ -50,8 +50,15 @@ class MainActivity : AppCompatActivity() {
 
         val bridge = Bridge()
         webView.addJavascriptInterface(bridge, "SpotifyAltNative")
-        // Compatibility alias while the web bundle is migrated.
-        webView.addJavascriptInterface(bridge, "SpotifyAlt")
+
+        WebRuntimeBridge.commandSink = { command ->
+            webView.post {
+                webView.evaluateJavascript(
+                    "window.SpotifyAltApp?.nativeCommand(${quoteJs(command)})",
+                    null
+                )
+            }
+        }
 
         webView.webViewClient = object : WebViewClientCompat() {
             override fun shouldInterceptRequest(
@@ -64,15 +71,10 @@ class MainActivity : AppCompatActivity() {
                 request: WebResourceRequest
             ): Boolean {
                 val uri = request.url
-
                 if (uri.host == "appassets.androidplatform.net") return false
 
                 return when (uri.scheme) {
-                    "spotify", "market" -> {
-                        openExternal(uri)
-                        true
-                    }
-                    "http", "https" -> {
+                    "spotify", "market", "http", "https" -> {
                         openExternal(uri)
                         true
                     }
@@ -94,9 +96,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::webView.isInitialized) {
+            webView.post {
+                webView.evaluateJavascript("window.SpotifyAltApp?.onNativeResume()", null)
+            }
+        }
+    }
+
     override fun onDestroy() {
+        WebRuntimeBridge.commandSink = null
         webView.removeJavascriptInterface("SpotifyAltNative")
-        webView.removeJavascriptInterface("SpotifyAlt")
         webView.destroy()
         super.onDestroy()
     }
@@ -108,6 +119,10 @@ class MainActivity : AppCompatActivity() {
     inner class Bridge {
         @JavascriptInterface
         fun runtime(): String = "android-web-shell/${BuildConfig.VERSION_NAME}"
+
+        @JavascriptInterface
+        fun webViewVersion(): String =
+            WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"
 
         @JavascriptInterface
         fun saveClientId(clientId: String) {
@@ -133,16 +148,52 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun openNotificationAccess() {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        }
+        fun accessToken(): String =
+            runCatching { SpotifyApi.accessToken(this@MainActivity).orEmpty() }
+                .getOrDefault("")
 
         @JavascriptInterface
-        fun startCompanion() {
+        fun isSaved(uri: String): Boolean =
+            runCatching { SpotifyApi.isSaved(this@MainActivity, uri) }
+                .getOrDefault(false)
+
+        @JavascriptInterface
+        fun setSaved(uri: String, saved: Boolean): Boolean =
+            runCatching { SpotifyApi.setSaved(this@MainActivity, uri, saved) }
+                .getOrDefault(false)
+
+        @JavascriptInterface
+        fun startMediaBridge() {
             ContextCompat.startForegroundService(
                 this@MainActivity,
                 Intent(this@MainActivity, SpotifyAltService::class.java)
+                    .setAction(SpotifyAltService.ACTION_START)
             )
+        }
+
+        @JavascriptInterface
+        fun updateMediaState(json: String) {
+            startService(
+                Intent(this@MainActivity, SpotifyAltService::class.java)
+                    .setAction(SpotifyAltService.ACTION_UPDATE)
+                    .putExtra(SpotifyAltService.EXTRA_STATE, json)
+            )
+        }
+
+        @JavascriptInterface
+        fun stopMediaBridge() {
+            stopService(Intent(this@MainActivity, SpotifyAltService::class.java))
+        }
+
+        @JavascriptInterface
+        fun setKeepScreenOn(enabled: Boolean) {
+            runOnUiThread {
+                if (enabled) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
         }
 
         @JavascriptInterface
