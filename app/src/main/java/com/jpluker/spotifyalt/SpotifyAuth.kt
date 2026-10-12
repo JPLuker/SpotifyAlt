@@ -9,7 +9,6 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URL
-import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
@@ -18,7 +17,9 @@ import kotlin.concurrent.thread
 object SpotifyAuth {
     private const val PORT = 43821
     private const val REDIRECT_URI = "http://127.0.0.1:$PORT/callback"
-    private const val SCOPES = "user-library-read user-library-modify user-read-playback-state user-read-currently-playing user-modify-playback-state"
+    private const val SCOPES =
+        "streaming user-read-email user-read-private user-library-read user-library-modify " +
+            "user-read-playback-state user-read-currently-playing user-modify-playback-state"
 
     fun start(context: Context, status: (String) -> Unit) {
         val prefs = context.getSharedPreferences("spotifyalt", Context.MODE_PRIVATE)
@@ -47,8 +48,14 @@ object SpotifyAuth {
                         val error = query.getQueryParameter("error")
 
                         val ok = error == null && !code.isNullOrBlank() && returnedState == state
-                        val body = if (ok) "SpotifyAlt connected. You can close this tab." else "SpotifyAlt authorization failed. Return to the app and try again."
-                        val response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ${body.toByteArray().size}\r\nConnection: close\r\n\r\n$body"
+                        val body = if (ok) {
+                            "SpotifyAlt connected. Return to the app."
+                        } else {
+                            "SpotifyAlt authorization failed. Return to the app and try again."
+                        }
+                        val response =
+                            "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n" +
+                                "Content-Length: ${body.toByteArray().size}\r\nConnection: close\r\n\r\n$body"
                         socket.getOutputStream().write(response.toByteArray())
                         socket.getOutputStream().flush()
 
@@ -56,8 +63,9 @@ object SpotifyAuth {
                             status("Spotify authorization failed${if (error != null) ": $error" else "."}")
                             return@use
                         }
+
                         exchangeCode(context, clientId, code!!, verifier)
-                        status("Spotify connected. Enable notification access, then start the companion.")
+                        status("Spotify connected. Starting SpotifyAlt player…")
                     }
                 }
             } catch (e: Exception) {
@@ -96,7 +104,10 @@ object SpotifyAuth {
         prefs.edit()
             .putString("access_token", json.getString("access_token"))
             .putString("refresh_token", json.optString("refresh_token", prefs.getString("refresh_token", "")))
-            .putLong("token_expires_at", System.currentTimeMillis() + json.optLong("expires_in", 3600) * 1000L - 60_000L)
+            .putLong(
+                "token_expires_at",
+                System.currentTimeMillis() + json.optLong("expires_in", 3600) * 1000L - 60_000L
+            )
             .apply()
     }
 
@@ -106,9 +117,11 @@ object SpotifyAuth {
         return base64Url(bytes)
     }
 
-    private fun base64Url(bytes: ByteArray): String = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    private fun base64Url(bytes: ByteArray): String =
+        Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
 
     private fun form(vararg pairs: Pair<String, String>): String = pairs.joinToString("&") {
-        java.net.URLEncoder.encode(it.first, "UTF-8") + "=" + java.net.URLEncoder.encode(it.second, "UTF-8")
+        java.net.URLEncoder.encode(it.first, "UTF-8") + "=" +
+            java.net.URLEncoder.encode(it.second, "UTF-8")
     }
 }
