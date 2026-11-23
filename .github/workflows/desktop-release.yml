@@ -1,0 +1,161 @@
+name: Desktop release
+
+# Publishes files from a finished CI run. It never rebuilds (RELEASES.md 6.1.5):
+# the files you tested are the files that ship.
+#
+# Tested release:   mode=tested,   platforms = the ones a person ran (e.g. "linux")
+# Untested release: mode=untested, platforms = one platform (e.g. "windows")
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: CI run ID whose files to publish
+        required: true
+      mode:
+        description: tested or untested
+        required: true
+        default: tested
+        type: choice
+        options: [tested, untested]
+      platforms:
+        description: Comma-separated (linux, windows)
+        required: true
+        default: linux
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check inputs and the CI run
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          MODE: ${{ inputs.mode }}
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "run_id must be a number"; exit 1; }
+          [[ "$PLATFORMS" =~ ^(linux|windows)(,(linux|windows))*$ ]] || { echo "platforms must be linux and/or windows"; exit 1; }
+          if [[ "$MODE" == untested && "$PLATFORMS" == *,* ]]; then echo "An untested release holds one platform"; exit 1; fi
+          run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RUN_ID")
+          [[ $(jq -r .conclusion <<<"$run") == success ]] || { echo "CI run $RUN_ID did not succeed"; exit 1; }
+          sha=$(jq -r .head_sha <<<"$run")
+          git fetch --depth=1 origin "$sha"
+          v=$(git show "$sha:desktop/package.json" | jq -r .version)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          # Desktop and Android share this repo, so desktop tags carry a prefix.
+          if [[ "$MODE" == tested ]]; then tag="desktop-v$v"; else tag="desktop-v$v-untested-$PLATFORMS"; fi
+          if gh release view "$tag" >/dev/null 2>&1; then echo "Release $tag already exists"; exit 1; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Download the CI run's files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts
+
+      - name: Collect, check, checksum
+        env:
+          MODE: ${{ inputs.mode }}
+          PLATFORMS: ${{ inputs.platforms }}
+          V: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          IFS=, read -ra list <<<"$PLATFORMS"
+          for p in "${list[@]}"; do
+            [[ -d "artifacts/$p" ]] || { echo "CI run has no $p files"; exit 1; }
+            cp "artifacts/$p"/* out/
+          done
+          # Version in the files must match the commit's package.json.
+          git checkout -q "${{ steps.meta.outputs.sha }}" -- desktop/package.json desktop/scripts/check-assets.sh
+          for p in "${list[@]}"; do (cd desktop && bash scripts/check-assets.sh "$p" ../out); done
+          if [[ "$MODE" == untested ]]; then
+            (cd out && for f in Heartline-*; do
+              case "$f" in
+                *.tar.gz) mv "$f" "${f%.tar.gz}-UNTESTED.tar.gz" ;;
+                *) mv "$f" "${f%.*}-UNTESTED.${f##*.}" ;;
+              esac
+            done)
+          fi
+          (cd out && sha256sum Heartline-* > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Write notes
+        env:
+          MODE: ${{ inputs.mode }}
+          PLATFORMS: ${{ inputs.platforms }}
+          V: ${{ steps.meta.outputs.version }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          base="$REPO_URL/releases/download/${{ steps.meta.outputs.tag }}"
+          {
+            if [[ "$MODE" == untested ]]; then
+              echo "> ⚠️ **UNTESTED BUILD.** These ${PLATFORMS^} builds were produced automatically and have not been run by a person. They may not install, launch, or work correctly. For tested builds, use [desktop-v$V]($REPO_URL/releases/tag/desktop-v$V)."
+              echo
+              s="-UNTESTED"
+            else
+              s=""
+            fi
+            echo "## Downloads"
+            if [[ "$PLATFORMS" == *linux* ]]; then
+              echo "**Linux:** [.deb]($base/Heartline-$V-Linux-x64$s.deb) · [AppImage]($base/Heartline-$V-Linux-x64$s.AppImage) · [.rpm]($base/Heartline-$V-Linux-x64$s.rpm) · [.tar.gz]($base/Heartline-$V-Linux-x64$s.tar.gz)"
+              echo "**Chrome extension:** [zip]($base/Heartline-$V-Extension$s.zip)"
+            fi
+            if [[ "$PLATFORMS" == *windows* ]]; then
+              echo "**Windows:** [Installer]($base/Heartline-$V-Windows-x64-Setup$s.exe) · [MSI]($base/Heartline-$V-Windows-x64$s.msi) · [Portable]($base/Heartline-$V-Windows-x64-portable$s.exe)"
+              echo
+              echo "Unsigned: Windows SmartScreen will warn before the first run."
+            fi
+            echo
+            echo "Checksums: [SHA256SUMS.txt]($base/SHA256SUMS.txt)"
+          } > notes.md
+          cat notes.md
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+          V: ${{ steps.meta.outputs.version }}
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+          if [[ "$MODE" == untested ]]; then
+            title="UNTESTED — ${PLATFORMS^} builds for v$V"
+            flags=(--prerelease --latest=false)
+          else
+            title="Heartline desktop v$V"
+            flags=(--latest)
+          fi
+          gh release create "$tag" out/* --target "${{ steps.meta.outputs.sha }}" --title "$title" --notes-file notes.md "${flags[@]}"
+
+      - name: Check the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+          mkdir -p check && cd check
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY"
+          sha256sum -c SHA256SUMS.txt
+          empty=$(find . -type f -empty)
+          if [[ -n "$empty" ]]; then echo "Empty asset in release: $empty"; exit 1; fi
+          pre=$(gh release view "$tag" --json isPrerelease --jq .isPrerelease)
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || echo none)
+          if [[ "$MODE" == untested ]]; then
+            [[ "$pre" == true && "$latest" != "$tag" ]] || { echo "Untested release must be pre-release and not Latest"; exit 1; }
+          else
+            [[ "$pre" == false && "$latest" == "$tag" ]] || { echo "Tested release must be Latest"; exit 1; }
+          fi

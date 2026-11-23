@@ -1,5 +1,8 @@
 # SpotifyAlt
 
+**Desktop:** Heartline, the Spotify web player in its own window with the heart button back, is in [`desktop/`](desktop/README.md). Its page script is in [`extension/`](extension/) and also works as a Chrome extension.
+
+
 SpotifyAlt is a **web-first Spotify player packaged inside a purpose-built Android browser shell**.
 
 The point is simple: keep the application PWA-like, but give it the Android capabilities a normal browser PWA does not reliably get. SpotifyAlt itself becomes a Spotify Connect playback device through Spotify's Web Playback SDK, then mirrors that web player into Android's MediaSession.

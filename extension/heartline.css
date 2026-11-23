@@ -1,0 +1,184 @@
+/* Heartline: heart button, settings panel, optional tweaks. */
+
+.hl-native-hidden {
+  display: none !important;
+}
+
+.hl-heart {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-subdued, #b3b3b3);
+  flex: 0 0 auto;
+}
+
+.hl-heart svg {
+  width: 16px;
+  height: 16px;
+  overflow: visible;
+}
+
+.hl-heart path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.hl-heart:hover {
+  color: var(--text-base, #fff);
+}
+
+.hl-heart[aria-pressed='true'] {
+  color: var(--text-bright-accent, #1ed760);
+}
+
+.hl-heart[aria-pressed='true'] path {
+  fill: currentColor;
+}
+
+.hl-heart[aria-pressed='true']:hover {
+  filter: brightness(1.1);
+}
+
+.hl-heart:focus-visible {
+  outline: 2px solid var(--text-base, #fff);
+  outline-offset: 1px;
+}
+
+.hl-heart:active svg {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hl-heart svg {
+    transition: transform 0.1s ease-out;
+  }
+}
+
+/* Rows: an empty heart shows on hover or keyboard focus, a full one always (the old behavior). */
+[data-testid='tracklist-row'] .hl-heart[aria-pressed='false'] {
+  opacity: 0;
+}
+
+[data-testid='tracklist-row']:hover .hl-heart,
+[data-testid='tracklist-row']:focus-within .hl-heart,
+[data-testid='tracklist-row'][aria-selected='true'] .hl-heart {
+  opacity: 1;
+}
+
+/* Optional: hide Premium and app download prompts. */
+html.hl-hide-upsell [data-testid='upgrade-button'],
+html.hl-hide-upsell a[href*='/premium'],
+html.hl-hide-upsell a[href='/download'],
+html.hl-hide-upsell a[href*='/download?'] {
+  display: none !important;
+}
+
+/* Settings panel (Alt+Shift+H). Follows Spotify's own surface colors. */
+.hl-panel {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--essential-subdued, #535353);
+  border-radius: 8px;
+  background: var(--background-elevated-base, #282828);
+  color: var(--text-base, #fff);
+  font: 14px/1.45 var(--encore-body-font-stack, system-ui, sans-serif);
+  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.5);
+}
+
+.hl-panel::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.hl-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.hl-panel h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hl-panel-close {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--essential-subdued, #727272);
+  border-radius: 16px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hl-panel-list {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.hl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.hl-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: #1ed760;
+  cursor: pointer;
+}
+
+.hl-css {
+  display: grid;
+  gap: 6px;
+}
+
+.hl-css textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 120px;
+  padding: 8px;
+  border: 1px solid var(--essential-subdued, #727272);
+  border-radius: 4px;
+  background: var(--background-base, #121212);
+  color: inherit;
+  font: 13px/1.4 ui-monospace, monospace;
+  resize: vertical;
+}
+
+.hl-status {
+  margin: 14px 0 0;
+  color: var(--text-subdued, #b3b3b3);
+}
+
+.hl-version {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-subdued, #b3b3b3);
+}
+
+.hl-panel :focus-visible {
+  outline: 2px solid var(--text-base, #fff);
+  outline-offset: 2px;
+}

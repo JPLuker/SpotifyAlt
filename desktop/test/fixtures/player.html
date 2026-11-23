@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spotify – Web Player (test page)</title>
+<script>
+  // Runs before anything else, like Spotify's own boot code. Heartline must already be hooked in.
+  fetch('https://api-partner.spotify.com/pathfinder/v2/query', {
+    method: 'POST',
+    headers: { authorization: 'Bearer TEST-TOKEN', 'client-token': 'TEST-CLIENT', 'app-platform': 'WebPlayer' },
+    body: JSON.stringify({ operationName: 'areEntitiesInLibrary', variables: { uris: [] },
+      extensions: { persistedQuery: { version: 1, sha256Hash: 'b'.repeat(64) } } }),
+  }).catch(() => {});
+</script>
+<style>
+  body { margin: 0; background: #121212; color: #fff; font: 14px system-ui, sans-serif; }
+  main { padding: 16px 24px; }
+  [data-testid="tracklist-row"] { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; border-radius: 4px; }
+  [data-testid="tracklist-row"]:hover { background: #2a2a2a; }
+  .title { flex: 1; }
+  .add { width: 32px; height: 32px; border: 0; background: none; color: #b3b3b3; font-size: 18px; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; height: 72px; background: #000; display: flex; align-items: center; gap: 16px; padding: 0 16px; }
+  [data-testid="now-playing-widget"] { display: flex; align-items: center; gap: 8px; min-width: 260px; }
+  footer button.ctl { height: 32px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Liked test playlist</h1>
+  <div data-testid="track-list" role="grid">
+    <div data-testid="tracklist-row" role="row" id="r1"><span class="title"><a href="/track/AAAAAAAAAAAAAAAAAAAAAA">Saved song</a></span><button class="add" aria-label="Add to playlist">✓</button></div>
+    <div data-testid="tracklist-row" role="row" id="r2"><span class="title"><a href="/track/BBBBBBBBBBBBBBBBBBBBBB">Not saved song</a></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
+    <div data-testid="tracklist-row" role="row" id="r3"><span class="title"><a href="/track/CCCCCCCCCCCCCCCCCCCCCC">Playlist-only song</a></span><button class="add" aria-label="Add to playlist">✓</button></div>
+    <div data-testid="tracklist-row" role="row" id="r4"><span class="title"><a href="/episode/EEEEEEEEEEEEEEEEEEEEEE">A podcast episode</a></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
+  </div>
+</main>
+<footer>
+  <div data-testid="now-playing-widget">
+    <a data-testid="context-link" href="/album/ZZZZZZZZZZZZZZZZZZZZZZ?uri=spotify%3Atrack%3ABBBBBBBBBBBBBBBBBBBBBB">Not saved song</a>
+    <div><button class="add" aria-label="Add to Liked Songs">+</button></div>
+  </div>
+  <button class="ctl" data-testid="control-button-skip-back" onclick="window.__clicks.previous++">Prev</button>
+  <button class="ctl" data-testid="control-button-playpause" onclick="window.__clicks.playpause++">Play</button>
+  <button class="ctl" data-testid="control-button-skip-forward" onclick="window.__clicks.next++">Next</button>
+</footer>
+<script>
+  window.__clicks = { previous: 0, playpause: 0, next: 0 };
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: 'Not saved song', artist: 'Test Artist', album: 'Test Album',
+    artwork: [{ src: 'https://i.scdn.co/image/test', sizes: '640x640' }],
+  });
+  navigator.mediaSession.playbackState = 'playing';
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Heartline",
+  "version": "0.1.0",
+  "description": "Puts the heart button back on the Spotify web player.",
+  "minimum_chrome_version": "111",
+  "host_permissions": [
+    "https://open.spotify.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://open.spotify.com/*"
+      ],
+      "js": [
+        "heartline.js"
+      ],
+      "css": [
+        "heartline.css"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

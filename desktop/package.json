@@ -1,0 +1,147 @@
+{
+  "name": "heartline",
+  "productName": "Heartline",
+  "version": "0.1.0",
+  "description": "The Spotify web player in its own window, with the heart button back.",
+  "main": "src/main/main.js",
+  "author": "Joseph Luker",
+  "license": "UNLICENSED",
+  "private": true,
+  "homepage": "https://github.com/JPLuker/SpotifyAlt",
+  "desktopName": "heartline.desktop",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "smoke": "node test/smoke/run.js",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win",
+    "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check ../extension/heartline.js",
+    "version:sync": "node scripts/sync-version.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "electron": "github:castlabs/electron-releases#v45.2.1+wvcus",
+    "electron-builder": "^26.18.0",
+    "jsdom": "^31.0.1"
+  },
+  "build": {
+    "appId": "com.jpluker.heartline",
+    "productName": "Heartline",
+    "files": [
+      "src/**",
+      "build/icons/**",
+      "package.json",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "asar": true,
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Audio",
+      "synopsis": "Spotify web player with the heart button back",
+      "maintainer": "Joseph Luker",
+      "executableName": "heartline",
+      "artifactName": "Heartline-${version}-Linux-x64.${ext}",
+      "desktop": {
+        "entry": {
+          "Name": "Heartline",
+          "StartupWMClass": "Heartline",
+          "Keywords": "music;spotify;player;"
+        }
+      }
+    },
+    "deb": {
+      "depends": [
+        "libnss3",
+        "libgtk-3-0",
+        "libasound2t64 | libasound2",
+        "libxss1",
+        "libnotify4",
+        "libsecret-1-0"
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "Heartline-${version}-Windows-x64-Setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "msi": {
+      "artifactName": "Heartline-${version}-Windows-x64.${ext}",
+      "perMachine": false
+    },
+    "portable": {
+      "artifactName": "Heartline-${version}-Windows-x64-portable.${ext}"
+    },
+    "electronDist": "node_modules/electron/dist",
+    "publish": null,
+    "extraResources": [
+      {
+        "from": "../extension",
+        "to": "extension",
+        "filter": [
+          "heartline.js",
+          "heartline.css",
+          "manifest.json"
+        ]
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JPLuker/SpotifyAlt.git",
+    "directory": "desktop"
+  }
+}
