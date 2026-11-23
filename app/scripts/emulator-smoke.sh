@@ -28,14 +28,19 @@ adb logcat -d > "$out/logcat.txt"
 grep -E "SpotifyAlt|GeckoConsole|Heartline" "$out/logcat.txt" | tail -n 80 > "$out/app-log.txt" || true
 
 # A small copy of the screenshot in the job log, so it can be read without the artifact store.
-if command -v convert >/dev/null; then
-  convert "$out/emulator-player.png" -resize 360x -quality 70 "$out/emulator-player-small.jpg"
-  echo "--- screenshot (base64 jpeg)"
-  echo "SCREENSHOT-BEGIN"
-  base64 -w 0 "$out/emulator-player-small.jpg"
-  echo
-  echo "SCREENSHOT-END"
+small="$out/emulator-player-small.jpg"
+if command -v magick >/dev/null; then
+  magick "$out/emulator-player.png" -resize 480x -quality 75 "$small"
+elif command -v convert >/dev/null; then
+  convert "$out/emulator-player.png" -resize 480x -quality 75 "$small"
+elif command -v ffmpeg >/dev/null; then
+  ffmpeg -loglevel error -y -i "$out/emulator-player.png" -vf scale=480:-1 -q:v 4 "$small"
+else
+  small="$out/emulator-player.png"
 fi
+echo "SCREENSHOT-BEGIN"
+base64 -w 76 "$small"
+echo "SCREENSHOT-END"
 
 echo "--- app log (tail)"
 cat "$out/app-log.txt"
