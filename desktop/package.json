@@ -16,7 +16,8 @@
     "dist:linux": "electron-builder --linux",
     "dist:win": "electron-builder --win",
     "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check ../extension/heartline.js",
-    "version:sync": "node scripts/sync-version.js"
+    "version:sync": "node scripts/sync-version.js",
+    "postinstall": "node node_modules/electron/install.js"
   },
   "engines": {
     "node": ">=22"
