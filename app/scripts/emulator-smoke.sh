@@ -115,7 +115,9 @@ if parts:
     for k in ("userAgent", "title", "innerWidth", "bodyText"):
         print(f"phone site {k} = {d.get(k)}")
 PY
-if command -v ffmpeg >/dev/null; then
-  ffmpeg -loglevel error -y -i "$out/emulator-phone-site.png" -vf scale=480:-1 -q:v 4 "$out/phone-site-small.jpg"
-  echo "SCREENSHOT2-BEGIN"; base64 -w 76 "$out/phone-site-small.jpg"; echo "SCREENSHOT2-END"
-fi
+small2="$out/phone-site-small.jpg"
+if command -v magick >/dev/null; then magick "$out/emulator-phone-site.png" -resize 480x -quality 75 "$small2"
+elif command -v convert >/dev/null; then convert "$out/emulator-phone-site.png" -resize 480x -quality 75 "$small2"
+elif command -v ffmpeg >/dev/null; then ffmpeg -loglevel error -y -i "$out/emulator-phone-site.png" -vf scale=480:-1 -q:v 4 "$small2"
+else small2="$out/emulator-phone-site.png"; fi
+echo "SCREENSHOT2-BEGIN"; base64 -w 76 "$small2"; echo "SCREENSHOT2-END"
