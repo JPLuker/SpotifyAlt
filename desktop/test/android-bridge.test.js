@@ -82,3 +82,11 @@ test('retries when the app is not ready yet', async () => {
   assert.equal(attempts(), 2);
   assert.equal(ports.length, 1);
 });
+
+test('the Widevine check result reaches the app, even if it arrives before the port', async () => {
+  const { w, ports } = setup({ failFirst: 1 });
+  fromPage(w, { source: 'heartline-page', type: 'diag', diag: { widevine: true, keySystem: 'com.widevine.alpha' } });
+  await tick(700);
+  const d = ports[0].sent.find((m) => m.type === 'diag');
+  assert.equal(JSON.stringify(d.diag), '{"widevine":true,"keySystem":"com.widevine.alpha"}');
+});

@@ -7,6 +7,8 @@ plugins {
 
 // GeckoView release (Firefox's engine). Pinned; bump on purpose (CLAUDE.md).
 val geckoviewVersion = providers.gradleProperty("geckoviewVersion").getOrElse("latest.release")
+// arm64-v8a for phones. CI's emulator test builds x86_64 with -PgeckoAbi=x86_64.
+val geckoAbi = providers.gradleProperty("geckoAbi").getOrElse("arm64-v8a")
 
 android {
     namespace = "com.jpluker.spotifyalt"
@@ -17,8 +19,9 @@ android {
         applicationId = "com.jpluker.spotifyalt"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.3.1"
+        versionCode = 6
+        versionName = "0.3.2"
+        ndk { abiFilters += geckoAbi }
     }
 
     // Release signing comes only from CI secrets made by app/scripts/setup-signing.sh.
@@ -100,7 +103,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation("org.mozilla.geckoview:geckoview-arm64-v8a:$geckoviewVersion")
+    implementation("org.mozilla.geckoview:geckoview-$geckoAbi:$geckoviewVersion")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-ktx:1.10.0")
     implementation("androidx.appcompat:appcompat:1.7.0")

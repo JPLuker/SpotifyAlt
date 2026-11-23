@@ -317,6 +317,13 @@ object PlayerSession {
                     if (state.playing) startMediaService()
                 }
                 "hello" -> Log.i(TAG, "Heartline connected")
+                "diag" -> json.optJSONObject("diag")?.let { d ->
+                    Log.i(
+                        TAG,
+                        "Heartline diag: widevine=${d.optBoolean("widevine")} " +
+                            "keySystem=${d.optString("keySystem").take(40)} error=${d.optString("error").take(120)}",
+                    )
+                }
             }
         }
 
