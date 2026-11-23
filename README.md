@@ -17,7 +17,8 @@ The Spotify web player as its own app, with the heart button back and Spotify re
 
 Install the APK from the latest "Android CI" run (Actions tab, `spotifyalt-debug` artifact). It's arm64 only, which covers current phones.
 
-- **Settings:** long-press the app icon and choose **Heartline settings**. You can turn the restyle, the hearts and the phone-width layout on or off there, and add your own CSS.
+- **Phone layout:** Spotify's desktop player is laid out at your screen's width: nav on top, the page, the player at the bottom. The Library button next to Home opens your library full screen.
+- **Settings:** long-press the app icon and choose **Heartline settings**. You can turn the restyle, the hearts and the phone layout on or off there, and add your own CSS. **Copy diagnostic info** copies what's needed to fix a problem (no passwords or tokens).
 - **Back** goes back a page. At the start page it sends the app to the background so music keeps playing.
 - Spotify web links open in SpotifyAlt when you pick it from the "Open with" list.
 

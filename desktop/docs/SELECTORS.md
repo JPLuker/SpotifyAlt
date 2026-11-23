@@ -14,4 +14,8 @@ Everything Heartline relies on in Spotify's web player. When Spotify changes som
 | Query hashes | Learned from the page's own requests and saved; defaults from Heartify 1.0.15 | Same as above until the page sends one of these operations itself (save or unsave any song once with Spotify's own button). |
 | Premium/download prompts | `[data-testid="upgrade-button"]`, links to `/premium` and `/download` | Prompts stay visible. Not checked against the live site yet. |
 | Restyle colors | Encore token sets `.encore-dark-theme`, `.encore-base-set`, `.encore-bright-accent-set` (`--background-*`, `--text-*`, `--essential-*`, `--decorative-*`, `--encore-*-font-stack`) | Spotify's own colors come back in that area. |
-| Restyle layout | `.Root__top-container`, `.Root__nav-bar`, `.Root__main-view`, `.Root__right-sidebar`, `.Root__globalNav`, `.Root__now-playing-bar` | Panels keep Spotify's black and gray. Not checked against the live site yet. |
+| Theme root | `.encore-dark-theme` is on `<html>` itself (live site, 2026-11-23) | Restyle colors don't apply. |
+| Layout | `[data-testid="root"] > div` (the grid), `#global-nav-bar`, `#Desktop_LeftSidebar_Id`, `#main-view`, `#lyrics-cinema`, `[data-testid="now-playing-bar"]`; older `Root__` classes kept for the desktop client | Restyle panels and the Android phone layout break. Checked on the live site by CI's emulator test. |
+| Phone player bar | `[data-testid="now-playing-widget"]` and `[data-testid="player-controls"]`; their common parent is the row | Bar keeps its desktop layout (cramped). Not seen live yet (needs a signed-in account). |
+| Nav home button | `#global-nav-bar [data-testid="home-button"]` (the Library button copies its classes) | No Library button on phones. |
+| Sign-in check (diagnostics) | `[data-testid="login-button"]` | "Signed in" reads wrong. |
