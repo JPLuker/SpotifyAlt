@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';

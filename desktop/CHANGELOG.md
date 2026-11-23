@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1] — 2026-11-23
+### Fixed
+- Windows builds no longer fail without an app icon. The MSI waits for the icon; the installer and portable `.exe` build now.
+
 ## [0.2.0] — 2026-11-23
 ### Added
 - Restyle Spotify: the web player in the Quiet Precision look (warm dark neutrals, ink instead of green, quieter sidebars, system font). On by default; "Restyle Spotify" in settings turns it off.

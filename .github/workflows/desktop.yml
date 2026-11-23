@@ -84,7 +84,17 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
       - run: npm ci
-      - run: npx electron-builder --win nsis msi portable --x64
+      - name: Build
+        shell: bash
+        run: |
+          # The MSI needs an app icon (WiX fails without one). The icon is Joseph's art (issue #3),
+          # so the MSI is built once build/icons/256x256.png exists.
+          if [[ -s build/icons/256x256.png ]]; then
+            npx electron-builder --win nsis msi portable --x64 -c.win.icon=build/icons/256x256.png
+          else
+            echo "::warning::No app icon yet, skipping the MSI (issue #3)"
+            npx electron-builder --win nsis portable --x64
+          fi
       - name: Check required files
         shell: bash
         run: bash scripts/check-assets.sh windows dist

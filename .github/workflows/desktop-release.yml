@@ -113,7 +113,9 @@ jobs:
               echo "**Chrome extension:** [zip]($base/Heartline-$V-Extension$s.zip)"
             fi
             if [[ "$PLATFORMS" == *windows* ]]; then
-              echo "**Windows:** [Installer]($base/Heartline-$V-Windows-x64-Setup$s.exe) · [MSI]($base/Heartline-$V-Windows-x64$s.msi) · [Portable]($base/Heartline-$V-Windows-x64-portable$s.exe)"
+              msi=""
+              if [[ -f "out/Heartline-$V-Windows-x64$s.msi" ]]; then msi=" · [MSI]($base/Heartline-$V-Windows-x64$s.msi)"; fi
+              echo "**Windows:** [Installer]($base/Heartline-$V-Windows-x64-Setup$s.exe)$msi · [Portable]($base/Heartline-$V-Windows-x64-portable$s.exe)"
               echo
               echo "Unsigned: Windows SmartScreen will warn before the first run."
             fi
