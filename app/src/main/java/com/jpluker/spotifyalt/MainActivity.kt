@@ -6,7 +6,10 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.mozilla.geckoview.GeckoView
 
 class MainActivity : AppCompatActivity() {
@@ -23,8 +26,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Debug builds only: the emulator test can try Spotify's phone site (see emulator-smoke.sh).
+        if (BuildConfig.DEBUG) PlayerSession.debugMobileSite = intent?.getBooleanExtra("debug_mobile_site", false) == true
+
         view = GeckoView(this)
-        setContentView(view)
+        // Android 15+ draws apps under the status and navigation bars. Keep the page clear of
+        // them (and of camera cutouts); the canvas color shows behind the bars.
+        val frame = FrameLayout(this)
+        frame.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        ViewCompat.setOnApplyWindowInsetsListener(frame) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        setContentView(frame)
         view.setSession(PlayerSession.session(this))
         PlayerSession.onSessionReplaced = { session ->
             view.releaseSession()

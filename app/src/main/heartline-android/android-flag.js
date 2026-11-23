@@ -7,6 +7,7 @@ window.__HEARTLINE_PLATFORM__ = 'android';
 // rest of the browser match the desktop user agent. Touch input keeps working: these only
 // change what feature checks report.
 (() => {
+  if (/Android|Mobile/.test(navigator.userAgent)) return; // phone site: leave it a phone
   const pin = (proto, prop, value) => {
     try {
       Object.defineProperty(proto, prop, { get: () => value, configurable: true, enumerable: true });
@@ -79,6 +80,9 @@ setTimeout(() => {
     diag: {
       layout: {
         cssLoaded,
+        userAgent: navigator.userAgent,
+        title: document.title,
+        bodyText: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 600),
         platform: navigator.platform,
         touchPoints: navigator.maxTouchPoints,
         phoneClass: document.documentElement.classList.contains('hl-phone'),

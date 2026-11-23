@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.5';
+  const VERSION = '0.2.6';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -754,7 +754,8 @@
 
   function layoutPhone() {
     const root = document.documentElement;
-    const on = PHONE();
+    // Only rearrange the desktop player's markup; leave anything else (e.g. Spotify's phone site) alone.
+    const on = PHONE() && !!document.getElementById('main-view');
     root.classList.toggle('hl-phone', on);
     if (!on) {
       root.classList.remove('hl-library-open');

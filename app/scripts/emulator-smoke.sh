@@ -93,3 +93,29 @@ if grep -qE "FATAL EXCEPTION|Page process crashed" "$out/logcat.txt"; then
   exit 1
 fi
 echo "Emulator smoke test passed"
+
+# Evaluation (no pass/fail): the same app on Spotify's phone site, to compare as a base.
+echo "--- phone site run"
+adb shell am force-stop com.jpluker.spotifyalt
+adb logcat -c
+adb shell am start -W -n com.jpluker.spotifyalt/.MainActivity --ez debug_mobile_site true
+sleep 45
+adb exec-out screencap -p > "$out/emulator-phone-site.png"
+adb logcat -d > "$out/logcat-phone-site.txt"
+grep -E "Debug: loading|Heartline (connected|diag)" "$out/logcat-phone-site.txt" || true
+python3 - "$out/logcat-phone-site.txt" <<'PY' || true
+import json, re, sys
+parts = {}
+for line in open(sys.argv[1], errors="replace"):
+    m = re.search(r"Heartline layout (\d+): (.*)$", line.rstrip("\n"))
+    if m:
+        parts[int(m.group(1))] = m.group(2)
+if parts:
+    d = json.loads("".join(parts[k] for k in sorted(parts)))
+    for k in ("userAgent", "title", "innerWidth", "bodyText"):
+        print(f"phone site {k} = {d.get(k)}")
+PY
+if command -v ffmpeg >/dev/null; then
+  ffmpeg -loglevel error -y -i "$out/emulator-phone-site.png" -vf scale=480:-1 -q:v 4 "$out/phone-site-small.jpg"
+  echo "SCREENSHOT2-BEGIN"; base64 -w 76 "$out/phone-site-small.jpg"; echo "SCREENSHOT2-END"
+fi

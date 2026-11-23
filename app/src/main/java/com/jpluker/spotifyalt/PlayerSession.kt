@@ -47,6 +47,9 @@ object PlayerSession {
     var canGoBack = false
         private set
 
+    /** Debug builds only: load Spotify's phone site (mobile user agent) instead of the desktop one. */
+    var debugMobileSite = false
+
     /** Called when a crashed page process forces a new session; the activity re-attaches. */
     var onSessionReplaced: ((GeckoSession) -> Unit)? = null
 
@@ -54,10 +57,13 @@ object PlayerSession {
         session?.let { return it }
         appContext = context.applicationContext
         val rt = runtime(appContext)
+        val mobile = BuildConfig.DEBUG && debugMobileSite
+        if (mobile) Log.i(TAG, "Debug: loading Spotify's phone site")
         val s = GeckoSession(
             GeckoSessionSettings.Builder()
-                // Spotify's mobile site sends people to its app; the desktop player works in Firefox.
-                .userAgentMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+                // The desktop player is the one known to play in Firefox. The phone site is
+                // being evaluated (debug flag) as a better base for the phone layout.
+                .userAgentMode(if (mobile) GeckoSessionSettings.USER_AGENT_MODE_MOBILE else GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
                 .viewportMode(GeckoSessionSettings.VIEWPORT_MODE_MOBILE)
                 .build()
         )

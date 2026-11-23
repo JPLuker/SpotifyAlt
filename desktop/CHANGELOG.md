@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.6] — 2026-11-23
+### Changed
+- Shared page script: the Android phone layout only touches the desktop player's markup.
+
 ## [0.2.5] — 2026-11-23
 ### Changed
 - Shared page script update for the Android phone layout (no desktop change).
