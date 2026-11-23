@@ -3,7 +3,6 @@ import groovy.json.JsonSlurper
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 // GeckoView release (Firefox's engine). Pinned; bump on purpose (CLAUDE.md).
@@ -11,7 +10,8 @@ val geckoviewVersion = providers.gradleProperty("geckoviewVersion").getOrElse("l
 
 android {
     namespace = "com.jpluker.spotifyalt"
-    compileSdk = 35
+    // GeckoView 160 is built against API 37 and requires it.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.jpluker.spotifyalt"
@@ -28,10 +28,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/heartline-assets"))

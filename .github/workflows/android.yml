@@ -22,7 +22,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
         with:
-          gradle-version: '8.9'
+          gradle-version: '9.3.1'
       - run: java -version && gradle --version
       - name: GeckoView version in use
         run: |
