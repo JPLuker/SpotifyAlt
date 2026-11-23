@@ -10,7 +10,18 @@ Read [JPLuker/InternalDesignGuidelines](https://github.com/JPLuker/InternalDesig
 | `extension/` | The page script: one-click Liked Songs hearts, settings panel, custom CSS, app bridge. Runs in Spotify's page (main world). Shared by the desktop app and Chrome, and planned for Android. |
 
 ## Direction (Joseph, 2026-11-23)
-"Both, Android first": desktop ships from `desktop/`; next, the Android app is rebuilt the same way, a dedicated browser running open.spotify.com with `extension/` changing the UI, plus Android media controls. Joseph also asked for a **full restyle** of Spotify's UI through the extension; the look itself is his call (DESIGN.md B0), so confirm the direction before building it.
+"Both, Android first": desktop ships from `desktop/`; next, the Android app is rebuilt the same way, a dedicated browser running open.spotify.com with `extension/` changing the UI, plus Android media controls. Joseph also asked for a **full restyle** of Spotify's UI through the extension (see Identity).
+
+## Identity
+- Visual style: Quiet Precision — approved by Joseph 2026-11-23: asked for a "Full restyle", then for the look: "Check out internal guidelines standards"
+- Accent: ink (`#EDEDEA` on dark); Spotify's green is replaced, including the big play button and the filled heart
+- Neutrals: warm (default), dark only for now; Spotify's web player has no light theme to map yet
+- Semantic shifts: none
+- Display font: none (Geist if installed, else the system UI font)
+- Shape: default
+- Density: Spotify's own for now
+- Signature detail: the heart
+- How: `extension/heartline.css` part 4 maps Spotify's Encore tokens and `Root__` layout classes under `html.hl-qp`. "Restyle Spotify" in settings turns it off.
 
 ## Desktop map
 | Path | Job |
@@ -41,4 +52,4 @@ Read [JPLuker/InternalDesignGuidelines](https://github.com/JPLuker/InternalDesig
 - **`.github/workflows/android.yml` predates the standards** (actions pinned to tags, no path filter). Fix it in the Android rework.
 
 ## Waiting on Joseph
-The restyle direction, the license, and the app and tray icons (human-made art). Each is an open issue.
+The license, and the app and tray icons (human-made art). Each is an open issue.

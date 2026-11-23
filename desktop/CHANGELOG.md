@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0] — 2026-11-23
+### Added
+- Restyle Spotify: the web player in the Quiet Precision look (warm dark neutrals, ink instead of green, quieter sidebars, system font). On by default; "Restyle Spotify" in settings turns it off.
+### Changed
+- Settings panel uses Quiet Precision switches, buttons and dialog.
+- The filled heart is ink instead of green while the restyle is on.
+### Fixed
+- `npm ci` now downloads the castLabs Electron binary.
+
 ## [0.1.0] — 2026-11-23
 ### Added
 - Desktop app: the Spotify web player in its own window, on castLabs Electron (Widevine) so music plays.

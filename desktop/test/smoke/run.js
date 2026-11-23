@@ -73,7 +73,14 @@ function check(r, log) {
   assert.ok(s0.episodeNativeVisible, 'episode row should keep the native button');
   assert.equal(s0.hiddenNatives, 4);
   assert.ok(s0.hearts.every((h) => h.w >= 24 && h.h >= 24), 'hit targets under 24px');
-  assert.equal(s0.savedColor, 'rgb(30, 215, 96)');
+  // Restyle on by default: Quiet Precision dark neutrals, ink accent (DESIGN.md B3).
+  assert.deepEqual(
+    { main: r.steps.restyleOn.main, nav: r.steps.restyleOn.nav, root: r.steps.restyleOn.root, play: r.steps.restyleOn.play, heart: r.steps.restyleOn.savedHeart },
+    { main: 'rgb(25, 25, 24)', nav: 'rgb(17, 17, 16)', root: 'rgb(17, 17, 16)', play: 'rgb(237, 237, 234)', heart: 'rgb(237, 237, 234)' },
+  );
+  assert.match(r.steps.restyleOn.font, /Geist|system-ui/);
+  assert.equal(r.steps.restyleOff, 'rgb(18, 18, 18)', 'restyle off gives Spotify\'s own colors back');
+  assert.equal(s0.savedColor, 'rgb(237, 237, 234)');
 
   const lookups = r.calls.filter((c) => c.op === 'areEntitiesInLibrary' && c.uris.length);
   assert.ok(lookups.length >= 1);

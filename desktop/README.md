@@ -5,7 +5,8 @@ The Spotify web player in its own window, with the heart button back. Part of [S
 - **The heart.** One click saves a song to Liked Songs, one click takes it out. A full heart means the song is in Liked Songs, not just in one of your playlists. It's on every song row and in the now-playing bar.
 - **Media controls.** Media keys and your desktop's player controls work (the Sound indicator on elementary OS, the media flyout on Windows). The window title shows the current song.
 - **Playback menu.** Play/Pause, Next, Previous and Like/Unlike (`Ctrl+Shift+L`). A tray menu with the same controls shows up when your desktop has a tray and `build/icons/tray.png` exists.
-- **Settings.** `Ctrl+,` in the app, `Alt+Shift+H` in Chrome. Turn the hearts off, keep Spotify's + button next to them, hide the Premium and download prompts, or add your own CSS.
+- **A calmer Spotify.** Warm dark grays, no green, quieter sidebars and the system font. Turn it off in settings if you want Spotify's own look.
+- **Settings.** `Ctrl+,` in the app, `Alt+Shift+H` in Chrome. Turn the restyle or the hearts off, keep Spotify's + button next to them, hide the Premium and download prompts, or add your own CSS.
 
 ## Install
 

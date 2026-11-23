@@ -13,28 +13,54 @@
   }).catch(() => {});
 </script>
 <style>
-  body { margin: 0; background: #121212; color: #fff; font: 14px system-ui, sans-serif; }
-  main { padding: 16px 24px; }
+  /* Spotify's own default Encore tokens (dark), so the restyle can be checked. */
+  .encore-dark-theme { --background-base:#121212; --background-highlight:#1f1f1f; --background-press:#000;
+    --background-elevated-base:#1f1f1f; --text-base:#fff; --text-subdued:#b3b3b3; --text-bright-accent:#1ed760;
+    --essential-subdued:#7c7c7c; --decorative-subdued:#292929; --encore-body-font-stack:serif; }
+  .encore-dark-theme .encore-bright-accent-set { --background-base:#1ed760; --text-base:#000; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #000; color: var(--text-base); font: 14px var(--encore-body-font-stack); }
+  .Root__top-container { color: var(--text-base); display: grid; height: 100%; gap: 8px; padding: 8px; box-sizing: border-box; background: #000;
+    grid-template: "nav nav" 48px "left main" 1fr "bar bar" 72px / 240px 1fr; }
+  .Root__globalNav { grid-area: nav; background: #000; display: flex; align-items: center; gap: 12px; }
+  .Root__nav-bar { grid-area: left; background: var(--background-base); border-radius: 8px; padding: 12px; }
+  .Root__main-view { grid-area: main; background: var(--background-base); border-radius: 8px; padding: 16px 24px; overflow: auto; }
+  .Root__now-playing-bar { grid-area: bar; background: #000; display: flex; align-items: center; gap: 16px; padding: 0 8px; }
+  .nav-item { padding: 8px; border-radius: 4px; color: var(--text-subdued); }
+  .nav-item:hover { background: var(--background-highlight); color: var(--text-base); }
   [data-testid="tracklist-row"] { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; border-radius: 4px; }
-  [data-testid="tracklist-row"]:hover { background: #2a2a2a; }
-  .title { flex: 1; }
-  .add { width: 32px; height: 32px; border: 0; background: none; color: #b3b3b3; font-size: 18px; }
-  footer { position: fixed; left: 0; right: 0; bottom: 0; height: 72px; background: #000; display: flex; align-items: center; gap: 16px; padding: 0 16px; }
+  [data-testid="tracklist-row"]:hover { background: var(--background-highlight); }
+  .title { flex: 1; } .title a { color: var(--text-base); text-decoration: none; } .sub { color: var(--text-subdued); font-size: 13px; }
+  .add { width: 32px; height: 32px; border: 0; background: none; color: var(--text-subdued); font-size: 18px; }
   [data-testid="now-playing-widget"] { display: flex; align-items: center; gap: 8px; min-width: 260px; }
-  footer button.ctl { height: 32px; }
+  [data-testid="now-playing-widget"] a { color: var(--text-base); }
+  .ctl { height: 32px; min-width: 32px; border: 0; border-radius: 16px; background: none; color: var(--text-subdued); }
+  .encore-bright-accent-set.big-play { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--background-base); color: var(--text-base); font-weight: 700; }
+  .pill { height: 32px; padding: 0 16px; border-radius: 16px; border: 0; background: #fff; color: #000; font-weight: 700; }
+  [data-testid="progress-bar"] { width: 260px; height: 4px; border-radius: 2px; background: var(--bg-color, #4d4d4d); position: relative; }
+  [data-testid="progress-bar"]::after { content: ""; position: absolute; inset: 0 60% 0 0; border-radius: 2px; background: var(--fg-color, #fff); }
 </style>
 </head>
 <body>
-<main>
+<div class="encore-dark-theme encore-layout-themes Root__top-container">
+<div class="Root__globalNav"><span class="nav-item">Home</span><a class="pill" data-testid="upgrade-button" href="/premium">Explore Premium</a></div>
+<nav class="Root__nav-bar encore-base-set">
+  <div class="nav-item">Your Library</div>
+  <div class="nav-item">Liked Songs</div>
+  <div class="nav-item">Test playlist</div>
+</nav>
+<main class="Root__main-view">
   <h1>Liked test playlist</h1>
+  <p class="sub">Test Artist · 4 songs</p>
+  <button class="encore-bright-accent-set big-play" aria-label="Play">▶</button>
   <div data-testid="track-list" role="grid">
-    <div data-testid="tracklist-row" role="row" id="r1"><span class="title"><a href="/track/AAAAAAAAAAAAAAAAAAAAAA">Saved song</a></span><button class="add" aria-label="Add to playlist">✓</button></div>
-    <div data-testid="tracklist-row" role="row" id="r2"><span class="title"><a href="/track/BBBBBBBBBBBBBBBBBBBBBB">Not saved song</a></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
-    <div data-testid="tracklist-row" role="row" id="r3"><span class="title"><a href="/track/CCCCCCCCCCCCCCCCCCCCCC">Playlist-only song</a></span><button class="add" aria-label="Add to playlist">✓</button></div>
-    <div data-testid="tracklist-row" role="row" id="r4"><span class="title"><a href="/episode/EEEEEEEEEEEEEEEEEEEEEE">A podcast episode</a></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
+    <div data-testid="tracklist-row" role="row" id="r1"><span class="title"><a href="/track/AAAAAAAAAAAAAAAAAAAAAA">Saved song</a><br><span class="sub">Test Artist</span></span><button class="add" aria-label="Add to playlist">✓</button></div>
+    <div data-testid="tracklist-row" role="row" id="r2"><span class="title"><a href="/track/BBBBBBBBBBBBBBBBBBBBBB">Not saved song</a><br><span class="sub">Test Artist</span></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
+    <div data-testid="tracklist-row" role="row" id="r3"><span class="title"><a href="/track/CCCCCCCCCCCCCCCCCCCCCC">Playlist-only song</a><br><span class="sub">Test Artist</span></span><button class="add" aria-label="Add to playlist">✓</button></div>
+    <div data-testid="tracklist-row" role="row" id="r4"><span class="title"><a href="/episode/EEEEEEEEEEEEEEEEEEEEEE">A podcast episode</a><br><span class="sub">Test Show</span></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
   </div>
 </main>
-<footer>
+<footer class="Root__now-playing-bar" data-testid="now-playing-bar">
   <div data-testid="now-playing-widget">
     <a data-testid="context-link" href="/album/ZZZZZZZZZZZZZZZZZZZZZZ?uri=spotify%3Atrack%3ABBBBBBBBBBBBBBBBBBBBBB">Not saved song</a>
     <div><button class="add" aria-label="Add to Liked Songs">+</button></div>
@@ -42,7 +68,9 @@
   <button class="ctl" data-testid="control-button-skip-back" onclick="window.__clicks.previous++">Prev</button>
   <button class="ctl" data-testid="control-button-playpause" onclick="window.__clicks.playpause++">Play</button>
   <button class="ctl" data-testid="control-button-skip-forward" onclick="window.__clicks.next++">Next</button>
+  <div data-testid="progress-bar"></div>
 </footer>
+</div>
 <script>
   window.__clicks = { previous: 0, playpause: 0, next: 0 };
   navigator.mediaSession.metadata = new MediaMetadata({

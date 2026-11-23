@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -24,6 +24,7 @@
   const IN_APP = window.__HEARTLINE_APP__ === true;
 
   const DEFAULT_SETTINGS = Object.freeze({
+    restyle: true,
     hearts: true,
     keepAddButton: false,
     hideUpsell: false,
@@ -522,12 +523,13 @@
     title.textContent = 'Heartline';
     const close = document.createElement('button');
     close.type = 'button';
-    close.className = 'hl-panel-close';
+    close.className = 'hl-btn';
     close.textContent = 'Close';
     close.addEventListener('click', () => dialog.close());
     head.append(title, close);
 
     const toggles = [
+      ['restyle', 'Restyle Spotify'],
       ['hearts', 'Heart buttons'],
       ['keepAddButton', 'Keep Spotify\'s + button too'],
       ['hideUpsell', 'Hide Premium and app download buttons'],
@@ -543,6 +545,7 @@
       input.type = 'checkbox';
       input.setAttribute('role', 'switch');
       input.dataset.key = key;
+      input.className = 'hl-switch';
       input.addEventListener('change', () => updateSettings({ [key]: input.checked }));
       label.append(span, input);
       list.append(label);
@@ -616,6 +619,7 @@
     const root = document.documentElement;
     if (!root) return;
     root.classList.toggle('hl-hide-upsell', !!settings.hideUpsell);
+    root.classList.toggle('hl-qp', !!settings.restyle);
     let style = document.getElementById('hl-custom-css');
     if (!settings.customCss) {
       if (style) style.remove();

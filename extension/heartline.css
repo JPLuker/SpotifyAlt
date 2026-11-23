@@ -1,4 +1,45 @@
-/* Heartline: heart button, settings panel, optional tweaks. */
+/*
+ * Heartline styles.
+ *  1. Quiet Precision tokens (InternalDesignGuidelines DESIGN.md B14, dark, ink accent).
+ *  2. The heart button.
+ *  3. The settings panel (always Quiet Precision; it's our UI).
+ *  4. The Spotify restyle, only under html.hl-qp ("Restyle Spotify" in settings).
+ *  5. Optional tweaks.
+ *
+ * The restyle works through Spotify's own Encore design tokens and its stable
+ * Root__ layout classes, so it doesn't depend on Spotify's hashed class names.
+ */
+
+/* 1. Tokens --------------------------------------------------------------- */
+
+:root {
+  --hl-canvas: #111110;
+  --hl-surface: #191918;
+  --hl-surface-2: #212120;
+  --hl-surface-3: #2b2b29;
+  --hl-border: #30302d;
+  --hl-border-strong: #75746e;
+  --hl-text: #ededea;
+  --hl-text-2: #b5b4ae;
+  --hl-text-3: #9c9b95;
+  --hl-focus: #6ea8fe;
+  --hl-accent: #ededea;
+  --hl-on-accent: #111110;
+  --hl-success: #4cc26a;
+  --hl-warning: #d9a53a;
+  --hl-danger: #f47a73;
+  --hl-info: #58a6ff;
+  --hl-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.36);
+  --hl-shadow-2: 0 2px 4px rgba(0, 0, 0, 0.44), 0 16px 40px rgba(0, 0, 0, 0.52);
+  --hl-scrim: rgba(0, 0, 0, 0.56);
+  --hl-font: 'Geist', 'Segoe UI Variable', 'SF Pro Text', system-ui, sans-serif;
+  --hl-font-mono: 'Geist Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+  --hl-t-fast: 120ms;
+  --hl-t-slow: 240ms;
+  --hl-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 2. Heart ---------------------------------------------------------------- */
 
 .hl-native-hidden {
   display: none !important;
@@ -52,7 +93,7 @@
 }
 
 .hl-heart:focus-visible {
-  outline: 2px solid var(--text-base, #fff);
+  outline: 2px solid var(--hl-focus);
   outline-offset: 1px;
 }
 
@@ -62,7 +103,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .hl-heart svg {
-    transition: transform 0.1s ease-out;
+    transition: transform 80ms var(--hl-ease);
   }
 }
 
@@ -77,30 +118,37 @@
   opacity: 1;
 }
 
-/* Optional: hide Premium and app download prompts. */
-html.hl-hide-upsell [data-testid='upgrade-button'],
-html.hl-hide-upsell a[href*='/premium'],
-html.hl-hide-upsell a[href='/download'],
-html.hl-hide-upsell a[href*='/download?'] {
-  display: none !important;
-}
+/* 3. Settings panel ------------------------------------------------------- */
 
-/* Settings panel (Alt+Shift+H). Follows Spotify's own surface colors. */
 .hl-panel {
   width: min(440px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: auto;
+  box-sizing: border-box;
   padding: 20px;
-  border: 1px solid var(--essential-subdued, #535353);
-  border-radius: 8px;
-  background: var(--background-elevated-base, #282828);
-  color: var(--text-base, #fff);
-  font: 14px/1.45 var(--encore-body-font-stack, system-ui, sans-serif);
-  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--hl-border);
+  border-radius: 16px;
+  background: var(--hl-surface);
+  color: var(--hl-text);
+  font: 400 14px/20px var(--hl-font);
+  box-shadow: var(--hl-shadow-2);
 }
 
 .hl-panel::backdrop {
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--hl-scrim);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hl-panel[open] {
+    animation: hl-in var(--hl-t-slow) var(--hl-ease);
+  }
+}
+
+@keyframes hl-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 
 .hl-panel-head {
@@ -112,25 +160,28 @@ html.hl-hide-upsell a[href*='/download?'] {
 
 .hl-panel h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
+  font: 600 16px/22px var(--hl-font);
+  letter-spacing: -0.01em;
 }
 
-.hl-panel-close {
-  min-height: 32px;
-  padding: 0 14px;
-  border: 1px solid var(--essential-subdued, #727272);
-  border-radius: 16px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+.hl-btn {
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid var(--hl-border);
+  border-radius: 8px;
+  background: var(--hl-surface-2);
+  color: var(--hl-text);
+  font: 500 13px/18px var(--hl-font);
   cursor: pointer;
+}
+
+.hl-btn:hover {
+  background: var(--hl-surface-3);
 }
 
 .hl-panel-list {
   display: grid;
-  gap: 2px;
-  margin-bottom: 16px;
+  margin: 0 -8px 16px;
 }
 
 .hl-row {
@@ -139,46 +190,212 @@ html.hl-hide-upsell a[href*='/download?'] {
   justify-content: space-between;
   gap: 16px;
   min-height: 40px;
+  padding: 0 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
-.hl-row input {
-  width: 20px;
+.hl-row:hover {
+  background: var(--hl-surface-2);
+}
+
+/* Toggle: pill track 36x20, ink when on, 3:1 edge when off (DESIGN.md B10). */
+.hl-switch {
+  appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
   height: 20px;
-  accent-color: #1ed760;
+  margin: 0;
+  border: 1px solid var(--hl-border-strong);
+  border-radius: 9999px;
+  background: var(--hl-surface-3);
   cursor: pointer;
+}
+
+.hl-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--hl-text-2);
+}
+
+.hl-switch:checked {
+  border-color: var(--hl-accent);
+  background: var(--hl-accent);
+}
+
+.hl-switch:checked::after {
+  left: 18px;
+  background: var(--hl-on-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hl-switch,
+  .hl-switch::after {
+    transition:
+      background var(--hl-t-fast) var(--hl-ease),
+      left var(--hl-t-fast) var(--hl-ease);
+  }
 }
 
 .hl-css {
   display: grid;
   gap: 6px;
+  font: 500 13px/18px var(--hl-font);
+  color: var(--hl-text-2);
 }
 
 .hl-css textarea {
   width: 100%;
   box-sizing: border-box;
   min-height: 120px;
-  padding: 8px;
-  border: 1px solid var(--essential-subdued, #727272);
-  border-radius: 4px;
-  background: var(--background-base, #121212);
-  color: inherit;
-  font: 13px/1.4 ui-monospace, monospace;
+  padding: 8px 12px;
+  border: 1px solid var(--hl-border-strong);
+  border-radius: 8px;
+  background: var(--hl-canvas);
+  color: var(--hl-text);
+  font: 400 13px/18px var(--hl-font-mono);
   resize: vertical;
 }
 
 .hl-status {
-  margin: 14px 0 0;
-  color: var(--text-subdued, #b3b3b3);
+  margin: 16px 0 0;
+  color: var(--hl-text-2);
 }
 
 .hl-version {
   margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--text-subdued, #b3b3b3);
+  font: 400 12px/16px var(--hl-font);
+  color: var(--hl-text-3);
 }
 
 .hl-panel :focus-visible {
-  outline: 2px solid var(--text-base, #fff);
+  outline: 2px solid var(--hl-focus);
   outline-offset: 2px;
+}
+
+/* 4. Restyle: Quiet Precision over Spotify --------------------------------- */
+
+/* Neutrals and text: Spotify's Encore tokens mapped to QP dark roles. */
+html.hl-qp .encore-dark-theme,
+html.hl-qp .encore-dark-theme .encore-base-set {
+  --background-base: var(--hl-surface) !important;
+  --background-highlight: var(--hl-surface-2) !important;
+  --background-press: var(--hl-surface-3) !important;
+  --background-elevated-base: var(--hl-surface-2) !important;
+  --background-elevated-highlight: var(--hl-surface-3) !important;
+  --background-elevated-press: var(--hl-border) !important;
+  --background-tinted-base: rgba(237, 237, 234, 0.07) !important;
+  --background-tinted-highlight: rgba(237, 237, 234, 0.1) !important;
+  --background-tinted-press: rgba(237, 237, 234, 0.14) !important;
+  --text-base: var(--hl-text) !important;
+  --text-subdued: var(--hl-text-2) !important;
+  --text-bright-accent: var(--hl-accent) !important;
+  --text-positive: var(--hl-success) !important;
+  --text-negative: var(--hl-danger) !important;
+  --text-warning: var(--hl-warning) !important;
+  --text-announcement: var(--hl-info) !important;
+  --essential-base: var(--hl-text) !important;
+  --essential-subdued: var(--hl-border-strong) !important;
+  --essential-bright-accent: var(--hl-accent) !important;
+  --essential-positive: var(--hl-success) !important;
+  --essential-negative: var(--hl-danger) !important;
+  --essential-warning: var(--hl-warning) !important;
+  --essential-announcement: var(--hl-info) !important;
+  --decorative-base: var(--hl-text) !important;
+  --decorative-subdued: var(--hl-border) !important;
+  --encore-body-font-stack: var(--hl-font) !important;
+  --encore-title-font-stack: var(--hl-font) !important;
+  --encore-variable-font-stack: var(--hl-font) !important;
+}
+
+/* The green "bright accent" set (big play button and friends) becomes ink. */
+html.hl-qp .encore-dark-theme .encore-bright-accent-set {
+  --background-base: var(--hl-accent) !important;
+  --background-highlight: #d9d9d5 !important;
+  --background-press: #c6c5c0 !important;
+  --background-elevated-base: var(--hl-accent) !important;
+  --background-elevated-highlight: #d9d9d5 !important;
+  --background-elevated-press: #c6c5c0 !important;
+  --text-base: var(--hl-on-accent) !important;
+  --essential-base: var(--hl-on-accent) !important;
+  --decorative-base: var(--hl-on-accent) !important;
+}
+
+/* Layout: canvas behind, content panel on surface, chrome on canvas (V1, V2). */
+html.hl-qp body,
+html.hl-qp .Root__top-container {
+  background-color: var(--hl-canvas) !important;
+}
+
+html.hl-qp .Root__nav-bar,
+html.hl-qp .Root__nav-bar .encore-base-set,
+html.hl-qp .Root__right-sidebar,
+html.hl-qp .Root__right-sidebar .encore-base-set,
+html.hl-qp .Root__globalNav,
+html.hl-qp .Root__now-playing-bar,
+html.hl-qp [data-testid='now-playing-bar'] {
+  --background-base: var(--hl-canvas) !important;
+  background-color: var(--hl-canvas) !important;
+}
+
+html.hl-qp .Root__main-view {
+  background-color: var(--hl-surface) !important;
+  border-radius: 12px;
+}
+
+/* Type: hierarchy from size and weight; no all-caps labels (A2.4). */
+html.hl-qp,
+html.hl-qp body {
+  font-family: var(--hl-font) !important;
+}
+
+html.hl-qp [data-testid='tracklist-row'] {
+  font-variant-numeric: tabular-nums;
+}
+
+html.hl-qp [data-testid='playback-position'],
+html.hl-qp [data-testid='playback-duration'] {
+  font-variant-numeric: tabular-nums;
+  color: var(--hl-text-2) !important;
+}
+
+/* Focus: visible everywhere (A8). */
+html.hl-qp a:focus-visible,
+html.hl-qp button:focus-visible,
+html.hl-qp [role='button']:focus-visible,
+html.hl-qp [role='row']:focus-visible,
+html.hl-qp input:focus-visible {
+  outline: 2px solid var(--hl-focus) !important;
+  outline-offset: 2px;
+}
+
+/* Progress and volume bars: neutral track, ink fill. */
+html.hl-qp [data-testid='progress-bar'],
+html.hl-qp [data-testid='volume-bar'] {
+  --fg-color: var(--hl-text) !important;
+  --bg-color: var(--hl-surface-3) !important;
+}
+
+/* Scrollbars that recede. */
+html.hl-qp ::-webkit-scrollbar-thumb {
+  background-color: var(--hl-surface-3);
+}
+
+html.hl-qp ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--hl-border-strong);
+}
+
+/* 5. Optional: hide Premium and app download prompts ----------------------- */
+
+html.hl-hide-upsell [data-testid='upgrade-button'],
+html.hl-hide-upsell a[href*='/premium'],
+html.hl-hide-upsell a[href='/download'],
+html.hl-hide-upsell a[href*='/download?'] {
+  display: none !important;
 }

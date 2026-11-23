@@ -13,3 +13,5 @@ Everything Heartline relies on in Spotify's web player. When Spotify changes som
 | Library API | `POST https://api-partner.spotify.com/pathfinder/v2/query`, operations `areEntitiesInLibrary`, `addToLibrary`, `removeFromLibrary` | Settings shows "lookup failed"; Spotify's button comes back. |
 | Query hashes | Learned from the page's own requests and saved; defaults from Heartify 1.0.15 | Same as above until the page sends one of these operations itself (save or unsave any song once with Spotify's own button). |
 | Premium/download prompts | `[data-testid="upgrade-button"]`, links to `/premium` and `/download` | Prompts stay visible. Not checked against the live site yet. |
+| Restyle colors | Encore token sets `.encore-dark-theme`, `.encore-base-set`, `.encore-bright-accent-set` (`--background-*`, `--text-*`, `--essential-*`, `--decorative-*`, `--encore-*-font-stack`) | Spotify's own colors come back in that area. |
+| Restyle layout | `.Root__top-container`, `.Root__nav-bar`, `.Root__main-view`, `.Root__right-sidebar`, `.Root__globalNav`, `.Root__now-playing-bar` | Panels keep Spotify's black and gray. Not checked against the live site yet. |
