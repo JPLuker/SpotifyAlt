@@ -30,8 +30,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/heartline-assets"))
-
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -39,34 +37,45 @@ android {
 
 // The page script is shared with the desktop app (repo-root extension/). Copy it in and
 // write the Android manifest from the shared one, so version and matches have one source.
-val heartlineAssets = tasks.register("heartlineAssets") {
-    val shared = rootProject.layout.projectDirectory.dir("extension")
-    val android = layout.projectDirectory.dir("src/main/heartline-android")
-    val out = layout.buildDirectory.dir("generated/heartline-assets/heartline")
-    inputs.dir(shared)
-    inputs.dir(android)
-    outputs.dir(out)
-    doLast {
-        val dest = out.get().asFile
-        dest.deleteRecursively()
-        dest.mkdirs()
-        listOf("heartline.js", "heartline.css").forEach { name ->
-            shared.file(name).asFile.copyTo(dest.resolve(name), overwrite = true)
-        }
-        listOf("android-flag.js", "android-bridge.js").forEach { name ->
-            android.file(name).asFile.copyTo(dest.resolve(name), overwrite = true)
-        }
+abstract class HeartlineAssetsTask : DefaultTask() {
+    @get:InputDirectory
+    abstract val sharedDir: DirectoryProperty
+
+    @get:InputDirectory
+    abstract val androidDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun run() {
+        val root = outputDir.get().asFile
+        root.deleteRecursively()
+        val dest = root.resolve("heartline").apply { mkdirs() }
+        val shared = sharedDir.get().asFile
+        val android = androidDir.get().asFile
+        listOf("heartline.js", "heartline.css").forEach { shared.resolve(it).copyTo(dest.resolve(it), overwrite = true) }
+        listOf("android-flag.js", "android-bridge.js").forEach { android.resolve(it).copyTo(dest.resolve(it), overwrite = true) }
         @Suppress("UNCHECKED_CAST")
-        val base = JsonSlurper().parse(shared.file("manifest.json").asFile) as MutableMap<String, Any?>
+        val base = JsonSlurper().parse(shared.resolve("manifest.json")) as MutableMap<String, Any?>
         @Suppress("UNCHECKED_CAST")
-        val overlay = JsonSlurper().parse(android.file("manifest.overlay.json").asFile) as Map<String, Any?>
+        val overlay = JsonSlurper().parse(android.resolve("manifest.overlay.json")) as Map<String, Any?>
         base.remove("minimum_chrome_version")
         base.putAll(overlay)
         dest.resolve("manifest.json").writeText(JsonOutput.prettyPrint(JsonOutput.toJson(base)))
     }
 }
 
-tasks.named("preBuild") { dependsOn(heartlineAssets) }
+val heartlineAssets = tasks.register<HeartlineAssetsTask>("heartlineAssets") {
+    sharedDir.set(rootProject.layout.projectDirectory.dir("extension"))
+    androidDir.set(layout.projectDirectory.dir("src/main/heartline-android"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(heartlineAssets, HeartlineAssetsTask::outputDir)
+    }
+}
 
 dependencies {
     implementation("org.mozilla.geckoview:geckoview-arm64-v8a:$geckoviewVersion")
