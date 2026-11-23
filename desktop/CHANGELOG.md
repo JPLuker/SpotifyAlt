@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.4] — 2026-11-23
+### Changed
+- Shared page script update for the Android phone layout (no desktop change).
+
 ## [0.2.3] — 2026-11-23
 ### Fixed
 - Restyle didn't apply on the live site: Spotify puts its theme class on `<html>`, and its layout now uses `#global-nav-bar`, `#Desktop_LeftSidebar_Id` and `#main-view` instead of `Root__` classes.

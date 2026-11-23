@@ -21,6 +21,7 @@ const PAGE = `<!doctype html><html class="encore-dark-theme"><head></head><body>
     <div class="right">volume</div>
   </div></aside>
   <div id="lyrics-cinema"></div>
+  <div class="d4YjdCUuq2sWZzXX_4i4"><div class="VTO__modal-slot"></div></div>
 </div></div></div></body></html>`;
 
 function setup(platform) {
@@ -42,7 +43,9 @@ test('Android: Spotify\'s grid becomes nav, page and player bar', async () => {
   assert.equal(slot('#main-view'), 'main');
   assert.equal(slot('[data-testid="now-playing-bar"]'), 'bar');
   assert.equal(slot('#lyrics-cinema'), 'overlay');
-  assert.equal(slot('.rr3AwF0UoO45NOY__aIz'), 'side');
+  // jsdom has no layout, so every element is zero-size here: wrappers count as overlays.
+  assert.equal(slot('.rr3AwF0UoO45NOY__aIz'), 'overlay');
+  assert.equal(slot('.d4YjdCUuq2sWZzXX_4i4'), 'overlay', 'modal layers are never hidden');
   assert.ok(d.querySelector('[data-testid="root"] > div').hasAttribute('data-hl-shell'));
 });
 
@@ -106,4 +109,20 @@ test('diagnostics: errors are kept, tokens are not', async () => {
   assert.match(text, /console\.error: boom Bearer \[redacted\] \[long value\]/);
   assert.doesNotMatch(text, /abc\.def\.ghi/);
   assert.match(text, /Layout: .*main:main-view/);
+});
+
+test('Android: a visible extra panel is hidden, an empty wrapper is not', async () => {
+  const dom = new JSDOM(PAGE.replace('<div class="rr3AwF0UoO45NOY__aIz"></div>', '<div class="rr3AwF0UoO45NOY__aIz big">right panel</div>'), {
+    url: 'https://open.spotify.com/', runScripts: 'outside-only',
+  });
+  const w = dom.window;
+  for (const prop of ['offsetWidth', 'offsetHeight']) {
+    Object.defineProperty(w.HTMLElement.prototype, prop, { get() { return this.classList.contains('big') ? 300 : 0; } });
+  }
+  w.__HEARTLINE_PLATFORM__ = 'android';
+  w.fetch = async () => ({ ok: true, status: 200, json: async () => ({ data: {} }) });
+  w.eval(SCRIPT);
+  await tick();
+  assert.equal(w.document.querySelector('.big').getAttribute('data-hl-slot'), 'side');
+  assert.equal(w.document.querySelector('.d4YjdCUuq2sWZzXX_4i4').getAttribute('data-hl-slot'), 'overlay');
 });

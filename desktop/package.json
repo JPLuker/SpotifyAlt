@@ -1,7 +1,7 @@
 {
   "name": "heartline",
   "productName": "Heartline",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "The Spotify web player in its own window, with the heart button back.",
   "main": "src/main/main.js",
   "author": "Joseph Luker",

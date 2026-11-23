@@ -463,6 +463,34 @@ html.hl-phone [data-hl-slot='library'] {
   display: none !important;
 }
 
+/* The nav row has room for the essentials only: app download, sign-up and Premium go. */
+html.hl-phone #global-nav-bar a[href*='/download'],
+html.hl-phone #global-nav-bar a[href*='/premium'],
+html.hl-phone #global-nav-bar [data-testid='signup-button'],
+html.hl-phone #global-nav-bar [data-testid='upgrade-button'] {
+  display: none !important;
+}
+
+html.hl-phone #global-nav-bar,
+html.hl-phone #global-nav-bar > * {
+  min-width: 0 !important;
+  gap: 8px !important;
+}
+
+html.hl-phone #global-nav-bar > * {
+  flex-shrink: 1 !important;
+}
+
+/* Long text in the bottom bar wraps instead of running off the screen. */
+html.hl-phone [data-hl-slot='bar'] {
+  overflow: hidden !important;
+}
+
+html.hl-phone [data-hl-slot='bar'] :is(p, span, a, div) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 html.hl-phone.hl-library-open [data-hl-slot='library'] {
   display: block !important;
   position: fixed !important;
