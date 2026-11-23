@@ -2,6 +2,34 @@
 window.__HEARTLINE_APP__ = true;
 window.__HEARTLINE_PLATFORM__ = 'android';
 
+// GeckoView's desktop mode changes the user agent only. Spotify's player can still see an
+// Android touch phone (platform, touch points) and refuse to play or push its app. Make the
+// rest of the browser match the desktop user agent. Touch input keeps working: these only
+// change what feature checks report.
+(() => {
+  const pin = (proto, prop, value) => {
+    try {
+      Object.defineProperty(proto, prop, { get: () => value, configurable: true, enumerable: true });
+    } catch (err) {
+      console.warn('[Heartline] Could not set', prop, err);
+    }
+  };
+  pin(Navigator.prototype, 'platform', 'Linux x86_64');
+  pin(Navigator.prototype, 'oscpu', 'Linux x86_64');
+  pin(Navigator.prototype, 'maxTouchPoints', 0);
+  for (const proto of [Window.prototype, Document.prototype, HTMLElement.prototype]) {
+    for (const prop of ['ontouchstart', 'ontouchend', 'ontouchmove', 'ontouchcancel']) {
+      if (prop in proto) {
+        try {
+          delete proto[prop];
+        } catch (err) {
+          console.warn('[Heartline] Could not remove', prop, err);
+        }
+      }
+    }
+  }
+})();
+
 // One check per page load: can this engine hand Spotify a Widevine key system?
 // The answer goes to the app's log ("Heartline diag"), which the emulator test reads.
 (() => {
@@ -51,13 +79,19 @@ setTimeout(() => {
     diag: {
       layout: {
         cssLoaded,
+        platform: navigator.platform,
+        touchPoints: navigator.maxTouchPoints,
+        phoneClass: document.documentElement.classList.contains('hl-phone'),
+        slots: [...document.querySelectorAll('[data-hl-shell] > *')].map((c) => `${c.getAttribute('data-hl-slot')}:${c.id || c.tagName.toLowerCase()}`).join(' '),
         restyleClass: document.documentElement.classList.contains('hl-qp'),
         innerWidth: window.innerWidth,
         viewport: (document.querySelector('meta[name=viewport]') || {}).content || null,
         encoreClass: theme ? [...theme.classList].filter((c) => c.startsWith('encore-')).join(' ') : null,
         bodyBg: bg('body'),
         rootBg: bg('.Root__top-container'),
-        mainBg: bg('.Root__main-view'),
+        mainBg: bg('#main-view'),
+        navBg: bg('#global-nav-bar'),
+        mainWidth: (document.getElementById('main-view') || { offsetWidth: null }).offsetWidth,
         baseVar: theme ? getComputedStyle(theme).getPropertyValue('--background-base').trim() : null,
         outline,
       },

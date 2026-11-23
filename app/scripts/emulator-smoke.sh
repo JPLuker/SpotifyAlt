@@ -63,6 +63,28 @@ else
   # Emulator images don't always ship Widevine; the phone is the real test. Flag it, don't fail.
   echo "::warning::Widevine not available on this emulator: $diag"
 fi
+# The layout report is logged in chunks; join them and check the numbers.
+python3 - "$out/logcat.txt" <<'PY' || exit 1
+import json, re, sys
+parts = {}
+for line in open(sys.argv[1], errors="replace"):
+    m = re.search(r"Heartline layout (\d+): (.*)$", line.rstrip("\n"))
+    if m:
+        parts[int(m.group(1))] = m.group(2)
+if not parts:
+    print("::error::No layout report in the log"); sys.exit(1)
+d = json.loads("".join(parts[k] for k in sorted(parts)))
+for k in sorted(d):
+    if k != "outline":
+        print(f"{k} = {d[k]}")
+problems = []
+if not d.get("cssLoaded"): problems.append("Heartline CSS not loaded")
+if (d.get("innerWidth") or 9999) > 500: problems.append(f"page is {d.get('innerWidth')} px wide, should be about the screen width")
+if d.get("mainBg") not in ("rgb(25, 25, 24)", None): problems.append(f"restyle not on the main view ({d.get('mainBg')})")
+if d.get("baseVar", "").lower() not in ("#191918", "rgb(25, 25, 24)", "var(--hl-surface)"): print(f"::warning::--background-base on the theme root is {d.get('baseVar')}")
+for p in problems: print(f"::error::{p}")
+sys.exit(1 if problems else 0)
+PY
 if grep -q "google-analytics.com/g/collect" "$out/logcat.txt"; then
   echo "::warning::Google Analytics still loaded; tracker blocking isn't catching it"
 fi

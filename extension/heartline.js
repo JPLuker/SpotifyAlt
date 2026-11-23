@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.2';
+  const VERSION = '0.2.3';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -50,6 +50,7 @@
     rowTrackLink: 'a[href*="/track/"]',
     nowPlaying: '[data-testid="now-playing-widget"], [data-testid="NPV_Panel_OpenDiv"]',
     nowPlayingLink: '[data-testid="now-playing-widget"] a[data-testid="context-link"]',
+    nowPlayingWidget: '[data-testid="now-playing-widget"]',
     playPause: '[data-testid="control-button-playpause"]',
     next: '[data-testid="control-button-skip-forward"]',
     previous: '[data-testid="control-button-skip-back"]',
@@ -64,6 +65,56 @@
   const BATCH = 50;
   const CONFIRM_MS = 2500;
   const LOOKUP_TIMEOUT_MS = 10000;
+
+  // ------------------------------------------------------------ diagnostics
+
+  // Recent errors and playback problems, for "Copy diagnostic info". Tokens are redacted.
+  const diagLog = [];
+  function redact(text) {
+    return String(text)
+      .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/g, 'Bearer [redacted]')
+      .replace(/[A-Za-z0-9_-]{40,}/g, '[long value]')
+      .slice(0, 300);
+  }
+  function note(kind, ...parts) {
+    diagLog.push(`${new Date().toISOString().slice(11, 19)} ${kind}: ${redact(parts.map((p) => (p && p.message) || p).join(' '))}`);
+    if (diagLog.length > 40) diagLog.shift();
+  }
+  for (const level of ['error', 'warn']) {
+    const original = console[level];
+    if (typeof original !== 'function') continue;
+    console[level] = function (...args) {
+      try {
+        note(`console.${level}`, ...args);
+      } catch (err) {
+        // never let logging break the page's own logging
+      }
+      return original.apply(this, args);
+    };
+  }
+  window.addEventListener('error', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'AUDIO' || t.tagName === 'VIDEO')) note('media error', t.error && t.error.code, t.error && t.error.message);
+    else note('error', e.message || (t && t.tagName));
+  }, true);
+  window.addEventListener('unhandledrejection', (e) => note('rejection', e.reason));
+  let drmResult = 'not asked yet';
+  if (navigator.requestMediaKeySystemAccess) {
+    const ask = navigator.requestMediaKeySystemAccess.bind(navigator);
+    navigator.requestMediaKeySystemAccess = function (keySystem, configs) {
+      return ask(keySystem, configs).then(
+        (access) => {
+          drmResult = `${keySystem}: granted`;
+          return access;
+        },
+        (err) => {
+          drmResult = `${keySystem}: ${(err && err.name) || err}`;
+          note('drm', drmResult);
+          throw err;
+        },
+      );
+    };
+  }
 
   // ---------------------------------------------------------------- utilities
 
@@ -480,6 +531,8 @@
   }
 
   function scan() {
+    ensureRootClasses();
+    if (PHONE()) layoutPhone();
     const natives = document.querySelectorAll(SEL.native);
     // Hearts whose Spotify button is gone (React re-rendered) go too.
     document.querySelectorAll('.hl-heart').forEach((heart) => {
@@ -573,11 +626,40 @@
     state.className = 'hl-status';
     state.setAttribute('role', 'status');
 
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'hl-btn hl-copy';
+    copy.textContent = 'Copy diagnostic info';
+    const copyOut = document.createElement('textarea');
+    copyOut.className = 'hl-diag';
+    copyOut.readOnly = true;
+    copyOut.hidden = true;
+    copyOut.setAttribute('aria-label', 'Diagnostic info');
+    copy.addEventListener('click', () => {
+      const text = diagnosticText();
+      const shown = () => {
+        copyOut.hidden = false;
+        copyOut.value = text;
+        copyOut.select();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          () => {
+            copy.textContent = 'Copied';
+            setTimeout(() => (copy.textContent = 'Copy diagnostic info'), 2000);
+          },
+          shown,
+        );
+      } else {
+        shown();
+      }
+    });
+
     const ver = document.createElement('p');
     ver.className = 'hl-version';
     ver.textContent = `v${VERSION}`;
 
-    dialog.append(head, list, cssLabel, state, ver);
+    dialog.append(head, list, cssLabel, state, copy, copyOut, ver);
     dialog.addEventListener('keydown', (e) => e.stopPropagation()); // keep Spotify's shortcuts out of the panel
     return dialog;
   }
@@ -587,6 +669,30 @@
     if (status.auth !== 'ready') return 'Hearts: waiting for Spotify to sign in';
     if (status.lookup === 'failed') return `Hearts: lookup failed (${status.lastError}). Showing Spotify's button instead.`;
     return 'Hearts: working';
+  }
+
+  function diagnosticText() {
+    const dialogs = [...document.querySelectorAll('[role="dialog"], [role="alertdialog"], [role="alert"]')]
+      .filter((d) => !d.classList.contains('hl-panel') && d.offsetParent !== null)
+      .map((d) => redact((d.innerText || '').replace(/\s+/g, ' ').trim()).slice(0, 200))
+      .filter(Boolean);
+    const shell = document.querySelector('[data-hl-shell]');
+    const slots = shell ? [...shell.children].map((c) => `${c.getAttribute('data-hl-slot')}:${c.id || c.tagName.toLowerCase()}`).join(' ') : 'none';
+    const audio = [...document.querySelectorAll('audio, video')].map((m) =>
+      `${m.tagName.toLowerCase()} paused=${m.paused} ready=${m.readyState} err=${m.error ? m.error.code : 'none'}`);
+    return [
+      `Heartline ${VERSION} ${ANDROID ? 'android' : IN_APP ? 'desktop app' : 'browser'}`,
+      `UA: ${navigator.userAgent}`,
+      `Page: ${location.pathname}  width: ${window.innerWidth}px`,
+      `Signed in: ${document.querySelector('[data-testid="login-button"]') ? 'no' : 'yes'}`,
+      `DRM: ${drmResult}`,
+      `Media: ${audio.join('; ') || 'none'}`,
+      `Hearts: ${statusText()}`,
+      `Layout: ${slots}`,
+      `Dialogs: ${dialogs.join(' | ') || 'none'}`,
+      'Recent problems:',
+      ...(diagLog.length ? diagLog : ['none']),
+    ].join('\n');
   }
 
   function openPanel() {
@@ -618,6 +724,118 @@
 
   // ----------------------------------------------------------- apply settings
 
+  // ----------------------------------------------------------- phone layout
+
+  // Spotify's desktop player won't go below ~810px wide. On a phone we turn its grid into
+  // one column: nav on top, the page, the player bar at the bottom. The library opens as a
+  // full-screen panel from a button in the nav. Hooks: docs/SELECTORS.md.
+  const PHONE = () => ANDROID && settings.phoneLayout;
+  const LIBRARY_PATH = 'M3 3h2v18H3zM8 3h2v18H8zM13.2 3.6l1.9-.6 5.7 17.4-1.9.6z';
+
+  function slotFor(child) {
+    if (child.id === 'global-nav-bar') return 'nav';
+    if (child.id === 'Desktop_LeftSidebar_Id') return 'library';
+    if (child.id === 'main-view') return 'main';
+    if (child.id === 'lyrics-cinema') return 'overlay';
+    if (child.matches('[data-testid="now-playing-bar"]') || child.querySelector(`[data-testid="now-playing-bar"], ${SEL.playPause}`)) return 'bar';
+    const pos = getComputedStyle(child).position;
+    return pos === 'absolute' || pos === 'fixed' ? 'overlay' : 'side';
+  }
+
+  function commonAncestor(a, b) {
+    for (let el = a; el; el = el.parentElement) if (el.contains(b)) return el;
+    return null;
+  }
+
+  function layoutPhone() {
+    const root = document.documentElement;
+    const on = PHONE();
+    root.classList.toggle('hl-phone', on);
+    if (!on) {
+      root.classList.remove('hl-library-open');
+      return;
+    }
+    const shell = document.querySelector('[data-testid="root"] > div');
+    if (shell) {
+      if (!shell.hasAttribute('data-hl-shell')) shell.setAttribute('data-hl-shell', '');
+      for (const child of shell.children) {
+        const slot = slotFor(child);
+        if (child.getAttribute('data-hl-slot') !== slot) child.setAttribute('data-hl-slot', slot);
+      }
+      const nav = shell.querySelector(':scope > [data-hl-slot="nav"]');
+      const bar = shell.querySelector(':scope > [data-hl-slot="bar"]');
+      root.style.setProperty('--hl-nav-h', `${nav ? nav.offsetHeight : 0}px`);
+      root.style.setProperty('--hl-bar-h', `${bar ? bar.offsetHeight : 0}px`);
+    }
+    // Player bar: track on one row, controls on the next, extras (volume, devices) hidden.
+    const widget = document.querySelector(SEL.nowPlayingWidget);
+    const controls = document.querySelector('[data-testid="player-controls"]');
+    if (widget && controls) {
+      const row = commonAncestor(widget, controls);
+      if (row && row !== document.body) {
+        if (!row.hasAttribute('data-hl-np-row')) row.setAttribute('data-hl-np-row', '');
+        for (const c of row.children) {
+          const part = c.contains(widget) ? 'track' : c.contains(controls) ? 'controls' : 'extra';
+          if (c.getAttribute('data-hl-np') !== part) c.setAttribute('data-hl-np', part);
+        }
+      }
+    }
+    ensureLibraryButton();
+  }
+
+  function ensureLibraryButton() {
+    const home = document.querySelector('#global-nav-bar [data-testid="home-button"]');
+    if (!home || document.getElementById('hl-library-button')) return;
+    const btn = document.createElement('button');
+    btn.id = 'hl-library-button';
+    btn.type = 'button';
+    btn.className = home.className; // look like Spotify's own nav buttons
+    btn.setAttribute('aria-label', 'Your Library');
+    btn.setAttribute('aria-expanded', 'false');
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', LIBRARY_PATH);
+    path.setAttribute('fill', 'currentColor');
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setLibraryOpen(!document.documentElement.classList.contains('hl-library-open'));
+    });
+    home.insertAdjacentElement('afterend', btn);
+  }
+
+  function setLibraryOpen(open) {
+    document.documentElement.classList.toggle('hl-library-open', open);
+    const btn = document.getElementById('hl-library-button');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  // Picking something in the library navigates; close the panel when that happens.
+  for (const fn of ['pushState', 'replaceState']) {
+    const original = history[fn];
+    history[fn] = function (...args) {
+      const result = original.apply(this, args);
+      if (fn === 'pushState') setLibraryOpen(false);
+      return result;
+    };
+  }
+  window.addEventListener('popstate', () => setLibraryOpen(false));
+
+  /** Spotify can rewrite <html>'s classes; put ours back. */
+  function ensureRootClasses() {
+    const root = document.documentElement;
+    if (!root) return;
+    if (root.classList.contains('hl-qp') !== !!settings.restyle) root.classList.toggle('hl-qp', !!settings.restyle);
+    if (root.classList.contains('hl-android') !== ANDROID) root.classList.toggle('hl-android', ANDROID);
+    if (root.classList.contains('hl-hide-upsell') !== !!settings.hideUpsell) root.classList.toggle('hl-hide-upsell', !!settings.hideUpsell);
+  }
+
   function applyViewport() {
     if (!ANDROID) return;
     const head = document.head;
@@ -641,6 +859,7 @@
     if (!root) return;
     applyViewport();
     root.classList.toggle('hl-android', ANDROID);
+    layoutPhone();
     root.classList.toggle('hl-hide-upsell', !!settings.hideUpsell);
     root.classList.toggle('hl-qp', !!settings.restyle);
     let style = document.getElementById('hl-custom-css');
@@ -761,6 +980,8 @@
       updateSettings,
       openPanel,
       runCommand,
+      diagnosticText,
+      _layoutPhone: layoutPhone,
       isSaved: (uri) => (saved.has(uri) ? saved.get(uri) : null),
       _scanNow: scan,
       _trackUriFromHref: trackUriFromHref,

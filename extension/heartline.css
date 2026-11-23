@@ -281,9 +281,12 @@
 
 /* 4. Restyle: Quiet Precision over Spotify --------------------------------- */
 
-/* Neutrals and text: Spotify's Encore tokens mapped to QP dark roles. */
+/* Neutrals and text: Spotify's Encore tokens mapped to QP dark roles.
+   Spotify puts .encore-dark-theme on <html> itself (seen on the live site, 2026-11-23). */
+html.hl-qp,
+html.hl-qp.encore-dark-theme,
 html.hl-qp .encore-dark-theme,
-html.hl-qp .encore-dark-theme .encore-base-set {
+html.hl-qp .encore-base-set {
   --background-base: var(--hl-surface) !important;
   --background-highlight: var(--hl-surface-2) !important;
   --background-press: var(--hl-surface-3) !important;
@@ -315,7 +318,7 @@ html.hl-qp .encore-dark-theme .encore-base-set {
 }
 
 /* The green "bright accent" set (big play button and friends) becomes ink. */
-html.hl-qp .encore-dark-theme .encore-bright-accent-set {
+html.hl-qp .encore-bright-accent-set {
   --background-base: var(--hl-accent) !important;
   --background-highlight: #d9d9d5 !important;
   --background-press: #c6c5c0 !important;
@@ -327,24 +330,30 @@ html.hl-qp .encore-dark-theme .encore-bright-accent-set {
   --decorative-base: var(--hl-on-accent) !important;
 }
 
-/* Layout: canvas behind, content panel on surface, chrome on canvas (V1, V2). */
+/* Layout: canvas behind, content panel on surface, chrome on canvas (V1, V2).
+   Stable ids first; the older Root__ classes are kept for the desktop client's markup. */
 html.hl-qp body,
+html.hl-qp [data-testid='root'],
+html.hl-qp [data-testid='root'] > div,
 html.hl-qp .Root__top-container {
   background-color: var(--hl-canvas) !important;
 }
 
+html.hl-qp #Desktop_LeftSidebar_Id,
+html.hl-qp #Desktop_LeftSidebar_Id .encore-base-set,
+html.hl-qp #global-nav-bar,
+html.hl-qp [data-testid='now-playing-bar'],
 html.hl-qp .Root__nav-bar,
-html.hl-qp .Root__nav-bar .encore-base-set,
 html.hl-qp .Root__right-sidebar,
-html.hl-qp .Root__right-sidebar .encore-base-set,
 html.hl-qp .Root__globalNav,
-html.hl-qp .Root__now-playing-bar,
-html.hl-qp [data-testid='now-playing-bar'] {
+html.hl-qp .Root__now-playing-bar {
   --background-base: var(--hl-canvas) !important;
   background-color: var(--hl-canvas) !important;
 }
 
+html.hl-qp #main-view,
 html.hl-qp .Root__main-view {
+  --background-base: var(--hl-surface) !important;
   background-color: var(--hl-surface) !important;
   border-radius: 12px;
 }
@@ -389,6 +398,115 @@ html.hl-qp ::-webkit-scrollbar-thumb {
 
 html.hl-qp ::-webkit-scrollbar-thumb:hover {
   background-color: var(--hl-border-strong);
+}
+
+/* Phone layout (Android, "Fit to phone width") ---------------------------- */
+/* Slots come from layoutPhone() in heartline.js: nav, main, bar, library, side, overlay. */
+
+html.hl-phone {
+  --left-sidebar-width: 100vw !important;
+  --panel-gap: 0px !important;
+}
+
+html.hl-phone,
+html.hl-phone body,
+html.hl-phone #main,
+html.hl-phone [data-testid='root'] {
+  min-width: 0 !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+html.hl-phone [data-hl-shell] {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100vw !important;
+  min-width: 0 !important;
+  height: 100dvh !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+html.hl-phone [data-hl-slot='nav'] {
+  order: 0;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  padding: 8px 12px !important;
+  overflow: hidden;
+}
+
+html.hl-phone [data-hl-slot='main'] {
+  order: 1;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+html.hl-phone [data-hl-slot='bar'] {
+  order: 2;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  box-sizing: border-box;
+  padding: 4px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+}
+
+html.hl-phone [data-hl-slot='side'],
+html.hl-phone [data-hl-slot='library'] {
+  display: none !important;
+}
+
+html.hl-phone.hl-library-open [data-hl-slot='library'] {
+  display: block !important;
+  position: fixed !important;
+  z-index: 50;
+  top: var(--hl-nav-h, 64px);
+  bottom: var(--hl-bar-h, 0px);
+  left: 0;
+  right: 0;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  overflow-y: auto;
+  background: var(--hl-canvas);
+}
+
+html.hl-phone.hl-library-open [data-hl-slot='main'] {
+  visibility: hidden;
+}
+
+html.hl-phone #hl-library-button[aria-expanded='true'] {
+  color: var(--hl-text) !important;
+  background-color: var(--hl-surface-3) !important;
+}
+
+/* Player bar: track on top, controls below, volume and device extras hidden. */
+html.hl-phone [data-hl-np-row] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 4px;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+
+html.hl-phone [data-hl-np='track'],
+html.hl-phone [data-hl-np='controls'] {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+html.hl-phone [data-hl-np='extra'] {
+  display: none !important;
 }
 
 /* Touch screens have no hover: empty hearts stay visible (DESIGN.md B10). */

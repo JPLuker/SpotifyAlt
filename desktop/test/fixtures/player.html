@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="encore-dark-theme encore-layout-themes">
 <head>
 <meta charset="utf-8">
 <title>Spotify – Web Player (test page)</title>
@@ -20,12 +20,12 @@
   .encore-dark-theme .encore-bright-accent-set { --background-base:#1ed760; --text-base:#000; }
   html, body { margin: 0; height: 100%; }
   body { background: #000; color: var(--text-base); font: 14px var(--encore-body-font-stack); }
-  .Root__top-container { color: var(--text-base); display: grid; height: 100%; gap: 8px; padding: 8px; box-sizing: border-box; background: #000;
+  [data-testid="root"] > div { color: var(--text-base); display: grid; height: 100%; gap: 8px; padding: 8px; box-sizing: border-box; background: #000;
     grid-template: "nav nav" 48px "left main" 1fr "bar bar" 72px / 240px 1fr; }
-  .Root__globalNav { grid-area: nav; background: #000; display: flex; align-items: center; gap: 12px; }
-  .Root__nav-bar { grid-area: left; background: var(--background-base); border-radius: 8px; padding: 12px; }
-  .Root__main-view { grid-area: main; background: var(--background-base); border-radius: 8px; padding: 16px 24px; overflow: auto; }
-  .Root__now-playing-bar { grid-area: bar; background: #000; display: flex; align-items: center; gap: 16px; padding: 0 8px; }
+  #global-nav-bar { grid-area: nav; background: #000; display: flex; align-items: center; gap: 12px; }
+  #Desktop_LeftSidebar_Id { grid-area: left; background: var(--background-base); border-radius: 8px; padding: 12px; }
+  #main-view { grid-area: main; background: var(--background-base); border-radius: 8px; padding: 16px 24px; overflow: auto; }
+  [data-testid="now-playing-bar"] { grid-area: bar; background: #000; display: flex; align-items: center; gap: 16px; padding: 0 8px; }
   .nav-item { padding: 8px; border-radius: 4px; color: var(--text-subdued); }
   .nav-item:hover { background: var(--background-highlight); color: var(--text-base); }
   [data-testid="tracklist-row"] { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; border-radius: 4px; }
@@ -42,14 +42,14 @@
 </style>
 </head>
 <body>
-<div class="encore-dark-theme encore-layout-themes Root__top-container">
-<div class="Root__globalNav"><span class="nav-item">Home</span><a class="pill" data-testid="upgrade-button" href="/premium">Explore Premium</a></div>
-<nav class="Root__nav-bar encore-base-set">
+<div id="main"><div class="Root global-nav centered-layout" data-testid="root"><div class="PbMBx95owTmQYYdfnp3j">
+<div id="global-nav-bar" data-testid="global-nav-bar"><button data-testid="home-button" aria-label="Home" class="nav-item">Home</button><a class="pill" data-testid="upgrade-button" href="/premium">Explore Premium</a></div>
+<div id="Desktop_LeftSidebar_Id"><nav class="encore-base-set">
   <div class="nav-item">Your Library</div>
   <div class="nav-item">Liked Songs</div>
   <div class="nav-item">Test playlist</div>
-</nav>
-<main class="Root__main-view">
+</nav></div>
+<div id="main-view">
   <h1>Liked test playlist</h1>
   <p class="sub">Test Artist · 4 songs</p>
   <button class="encore-bright-accent-set big-play" aria-label="Play">▶</button>
@@ -59,8 +59,8 @@
     <div data-testid="tracklist-row" role="row" id="r3"><span class="title"><a href="/track/CCCCCCCCCCCCCCCCCCCCCC">Playlist-only song</a><br><span class="sub">Test Artist</span></span><button class="add" aria-label="Add to playlist">✓</button></div>
     <div data-testid="tracklist-row" role="row" id="r4"><span class="title"><a href="/episode/EEEEEEEEEEEEEEEEEEEEEE">A podcast episode</a><br><span class="sub">Test Show</span></span><button class="add" aria-label="Add to Liked Songs">+</button></div>
   </div>
-</main>
-<footer class="Root__now-playing-bar" data-testid="now-playing-bar">
+</div>
+<footer data-testid="now-playing-bar">
   <div data-testid="now-playing-widget">
     <a data-testid="context-link" href="/album/ZZZZZZZZZZZZZZZZZZZZZZ?uri=spotify%3Atrack%3ABBBBBBBBBBBBBBBBBBBBBB">Not saved song</a>
     <div><button class="add" aria-label="Add to Liked Songs">+</button></div>
@@ -70,7 +70,7 @@
   <button class="ctl" data-testid="control-button-skip-forward" onclick="window.__clicks.next++">Next</button>
   <div data-testid="progress-bar"></div>
 </footer>
-</div>
+</div></div></div>
 <script>
   window.__clicks = { previous: 0, playpause: 0, next: 0 };
   navigator.mediaSession.metadata = new MediaMetadata({

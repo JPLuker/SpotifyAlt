@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.3] — 2026-11-23
+### Fixed
+- Restyle didn't apply on the live site: Spotify puts its theme class on `<html>`, and its layout now uses `#global-nav-bar`, `#Desktop_LeftSidebar_Id` and `#main-view` instead of `Root__` classes.
+### Added
+- "Copy diagnostic info" in settings: version, page width, DRM result, player state and recent errors, with tokens removed.
+
 ## [0.2.2] — 2026-11-23
 ### Changed
 - On touch screens the empty heart stays visible on every row (there's no hover).

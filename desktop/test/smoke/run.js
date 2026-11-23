@@ -93,6 +93,9 @@ function check(r, log) {
   assert.equal(byUri(r.steps.afterLikeCommand, B, 'now').pressed, 'true');
   assert.deepEqual(r.steps.afterControls.clicks, { previous: 0, playpause: 1, next: 1 });
 
+  assert.match(r.steps.diagText, /^Heartline \S+ desktop app/);
+  assert.match(r.steps.diagText, /Signed in: yes/);
+  assert.doesNotMatch(r.steps.diagText, /TEST-TOKEN/, 'diagnostics must not contain the token');
   assert.equal(r.steps.settings.open, true, 'settings panel opens from the app menu');
   assert.equal(r.steps.settings.status, 'Hearts: working');
 

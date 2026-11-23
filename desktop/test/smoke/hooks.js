@@ -81,14 +81,15 @@ function install({ app, session, protocol, partition, getWindow, sendCommand, ou
       fs.writeFileSync(path.join(outDir, 'smoke-initial.png'), shot.toPNG());
       result.steps.restyleOn = await page(`(() => {
         const css = (sel, prop) => getComputedStyle(document.querySelector(sel))[prop];
-        return { main: css('.Root__main-view', 'backgroundColor'), nav: css('.Root__nav-bar', 'backgroundColor'),
-          root: css('.Root__top-container', 'backgroundColor'), play: css('.big-play', 'backgroundColor'),
+        return { main: css('#main-view', 'backgroundColor'), nav: css('#Desktop_LeftSidebar_Id', 'backgroundColor'),
+          root: css('[data-testid="root"] > div', 'backgroundColor'), play: css('.big-play', 'backgroundColor'),
           savedHeart: css('#r1 .hl-heart', 'color'), font: css('body', 'fontFamily') };
       })()`);
       await page(`window.__heartline.updateSettings({ restyle: false })`);
       await wait(200);
       fs.writeFileSync(path.join(outDir, 'smoke-restyle-off.png'), (await getWindow().webContents.capturePage()).toPNG());
-      result.steps.restyleOff = await page(`getComputedStyle(document.querySelector('.Root__main-view')).backgroundColor`);
+      result.steps.restyleOff = await page(`getComputedStyle(document.querySelector('#main-view')).backgroundColor`);
+      result.steps.diagText = await page(`window.__heartline.diagnosticText()`);
       await page(`window.__heartline.updateSettings({ restyle: true })`);
       await wait(200);
 
