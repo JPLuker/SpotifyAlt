@@ -1,87 +1,46 @@
 # SpotifyAlt
 
-**Desktop:** Heartline, the Spotify web player in its own window with the heart button back, is in [`desktop/`](desktop/README.md). Its page script is in [`extension/`](extension/) and also works as a Chrome extension.
+The Spotify web player as its own app, with the heart button back and Spotify restyled.
 
+- **Android** (`app/`): a dedicated browser built on GeckoView (Firefox's engine) that runs open.spotify.com.
+- **Desktop** (`desktop/`, called Heartline): the same idea for Linux and Windows, on castLabs Electron. See [desktop/README.md](desktop/README.md).
+- **The extension** (`extension/`): the part that changes Spotify. Both apps run it, and it also works in Chrome.
 
-SpotifyAlt is a **web-first Spotify player packaged inside a purpose-built Android browser shell**.
+## What you get
 
-The point is simple: keep the application PWA-like, but give it the Android capabilities a normal browser PWA does not reliably get. SpotifyAlt itself becomes a Spotify Connect playback device through Spotify's Web Playback SDK, then mirrors that web player into Android's MediaSession.
+- **The heart.** One tap saves a song to Liked Songs, one tap takes it out. A full heart means it's in Liked Songs, not just in some playlist. It's on every song row, in the now-playing bar and in Android's media card.
+- **A calmer Spotify.** Warm dark grays, no green, quieter chrome and your system font. You can turn it off.
+- **Media controls.** Android's notification and lock-screen card with Like, Previous, Play/Pause and Next. Headset and Bluetooth buttons work too.
+- **No setup.** Sign in with your Spotify account inside the app. No developer account, no client ID.
 
-The defining behavior is deliberately strict:
+## Android
 
-- `♡` = the current track is **not** in Liked Songs.
-- `♥` = the current track **is** in Liked Songs.
-- Tapping the heart changes that exact state only. It never means "in some playlist."
+Install the APK from the latest "Android CI" run (Actions tab, `spotifyalt-debug` artifact). It's arm64 only, which covers current phones.
 
-## 0.2.0-alpha
+- **Settings:** long-press the app icon and choose **Heartline settings**. You can turn the restyle, the hearts and the phone-width layout on or off there, and add your own CSS.
+- **Back** goes back a page. At the start page it sends the app to the background so music keeps playing.
+- Spotify web links open in SpotifyAlt when you pick it from the "Open with" list.
 
-The old proxy design that watched the official Spotify Android app has been removed. The current build now attempts the intended architecture directly:
+## Network connections
 
-1. The bundled HTML/CSS/JS app loads in a dedicated Android WebView runtime.
-2. Spotify OAuth uses Authorization Code + PKCE. No client secret is embedded.
-3. The web app loads Spotify's Web Playback SDK and registers **SpotifyAlt** as a Spotify Connect device.
-4. Tapping **Play here** activates the browser audio element and transfers playback to SpotifyAlt.
-5. Web player metadata is sent through `window.SpotifyAltNative` into a native Android MediaSession.
-6. The Android swipe-down media card exposes previous, play/pause, next and a real Liked Songs heart.
-7. Native media-button events are routed back into the web player.
+| Host | When | What it sends |
+|---|---|---|
+| `*.spotify.com`, `*.scdn.co`, `*.spotifycdn.com` | While you use it | The same requests Spotify's web player makes. Heartline adds Liked Songs lookups and saves to `api-partner.spotify.com`, using the sign-in token Spotify's own page already sends. The media card loads album art from Spotify's image server. |
+| Google's Widevine services | When playback starts | Android's DRM system fetches licenses for Spotify's protected audio, the same as any browser. |
 
-The web app also includes a basic track search so the first physical-device test does not have to depend on the official Spotify app for choosing every track.
-
-## Architecture
-
-SpotifyAlt has three layers:
-
-- **Web app / PWA layer** — interface, Web Playback SDK, track search, player state, Liked Songs state and most product logic.
-- **Android browser shell** — dedicated WebView runtime, Spotify authentication handoff and a deliberately small JavaScript bridge.
-- **Native media adapter** — Android MediaSession, notification-shade controls, lock-screen controls and hardware/Bluetooth media buttons.
-
-If a feature can sensibly live in HTML/CSS/JS, it should. Native Kotlin exists to expose Android platform capabilities to the web application.
-
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the design contract.
-
-## Spotify developer setup
-
-You need Spotify Premium for the Web Playback SDK.
-
-1. Create an app in the Spotify Developer Dashboard.
-2. Enable/use both the **Web API** and **Web Playback SDK** for the app.
-3. Add this exact redirect URI:
-
-   `http://127.0.0.1:43821/callback`
-
-4. Build/install SpotifyAlt.
-5. Paste the Spotify app's **Client ID** into SpotifyAlt and connect.
-6. Complete authorization in the browser and return to SpotifyAlt.
-7. Wait for the diagnostics panel to show **Spotify Web Playback SDK: ready**.
-8. Tap **Play here**.
-
-## What to test on a physical Android phone
-
-The Android build already compiles in CI. The important unknowns cannot be proven by desktop CI because they depend on Android System WebView and DRM/EME support:
-
-- Does Spotify Web Playback SDK initialize inside the installed System WebView?
-- Does audio continue normally with SpotifyAlt backgrounded?
-- Does Android keep the MediaSession card alive while WebView is playing?
-- Does the heart appear in the expected slot in your Android notification-shade media player?
-- Do lock-screen and Bluetooth/headset buttons route back to the web player?
-
-SpotifyAlt exposes the installed System WebView version and Web Playback SDK state directly in its diagnostics panel so failures can be debugged precisely.
+The Spotify token stays in memory and is never saved or sent anywhere but Spotify. Settings stay on your phone. No analytics, no tracking.
 
 ## Build
 
-GitHub Actions builds a debug APK on every push. The artifact is named:
-
-`spotifyalt-debug`
-
-Local build:
-
 ```bash
-gradle :app:assembleDebug
+gradle :app:testDebugUnitTest :app:assembleDebug      # Android (needs JDK 17 and the Android SDK)
+cd desktop && npm ci && npm test && npm run smoke    # desktop and the extension
 ```
 
-## Current limitations
+CI builds both on every push. Android needs AGP 9.1, Gradle 9.3 and compileSdk 37 because GeckoView 160 does.
 
-- Spotify Web Playback SDK requires Spotify Premium.
-- The PWA bundle is portable, but OAuth is still delegated to the Android bridge in this alpha. A fully standalone browser/PWA PKCE flow is a later step.
-- WebView encrypted-media support is the main technical risk. If the SDK reports an initialization/EME failure on the target phone, the diagnostics from the physical device will determine whether we can keep the pure WebView approach or need a different Chromium runtime.
-- Search/player UX is intentionally minimal until playback-in-WebView is proven.
+## Credits
+
+Made by Joseph Luker. GeckoView by Mozilla. The heart lookup approach and starting query hashes come from [Heartify](https://github.com/momir64/heartify) by Momir Stanišić.
+
+Not made by, endorsed by or connected to Spotify.

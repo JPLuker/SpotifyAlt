@@ -17,8 +17,30 @@ android {
         applicationId = "com.jpluker.spotifyalt"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.3.0"
+        versionCode = 5
+        versionName = "0.3.1"
+    }
+
+    // Release signing comes only from CI secrets made by app/scripts/setup-signing.sh.
+    // No fallback key: without them there's no signed release (SECURITY-BASELINE 4).
+    val keystorePath = System.getenv("SPOTIFYALT_KEYSTORE_FILE")
+    signingConfigs {
+        create("release") {
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storeType = "PKCS12"
+                storePassword = System.getenv("SPOTIFYALT_STORE_PASSWORD")
+                keyAlias = System.getenv("SPOTIFYALT_KEY_ALIAS")
+                keyPassword = System.getenv("SPOTIFYALT_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = if (keystorePath != null) signingConfigs.getByName("release") else null
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {

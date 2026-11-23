@@ -23,10 +23,7 @@ data class PlayerState(
             fun str(key: String, max: Int) = json.optString(key, "").take(max)
             val uri = str("uri", 64).takeIf { TRACK_URI.matches(it) }
             val art = str("artwork", 1000).takeIf { it.startsWith("https://") }
-            val liked = when (val v = json.opt("liked")) {
-                is Boolean -> v
-                else -> null
-            }
+            val liked = json.opt("liked") as? Boolean
             return previous.copy(
                 title = str("title", 300),
                 artist = str("artist", 300),

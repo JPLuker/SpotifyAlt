@@ -16,6 +16,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check signing secrets
+        id: signing
+        env:
+          KS: ${{ secrets.SPOTIFYALT_ANDROID_KEYSTORE_B64 }}
+          SP: ${{ secrets.SPOTIFYALT_ANDROID_STORE_PASSWORD }}
+          KP: ${{ secrets.SPOTIFYALT_ANDROID_KEY_PASSWORD }}
+          KA: ${{ secrets.SPOTIFYALT_ANDROID_KEY_ALIAS }}
+          FP: ${{ secrets.SPOTIFYALT_ANDROID_CERT_SHA256 }}
+        run: |
+          # Names only, never values (SECURITY-BASELINE 2).
+          missing=()
+          [[ -n "$KS" ]] || missing+=(KEYSTORE_B64)
+          [[ -n "$SP" ]] || missing+=(STORE_PASSWORD)
+          [[ -n "$KP" ]] || missing+=(KEY_PASSWORD)
+          [[ -n "$KA" ]] || missing+=(KEY_ALIAS)
+          [[ -n "$FP" ]] || missing+=(CERT_SHA256)
+          if (( ${#missing[@]} == 5 )); then
+            echo "::warning::No release signing yet, building debug only. Run on a trusted computer: gh repo clone JPLuker/SpotifyAlt && cd SpotifyAlt && bash app/scripts/setup-signing.sh"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif (( ${#missing[@]} )); then
+            echo "::error::Signing secrets incomplete, missing SPOTIFYALT_ANDROID_${missing[*]}. Run app/scripts/setup-signing.sh again on the computer that has the key."
+            exit 1
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
         with:
           distribution: temurin
@@ -40,10 +65,39 @@ jobs:
           unzip -l "$apk" | grep -E 'assets/heartline/(manifest.json|heartline.js|heartline.css|android-bridge.js|android-flag.js)$'
           unzip -p "$apk" assets/heartline/manifest.json | python3 -c "import json,sys; m=json.load(sys.stdin); assert m['browser_specific_settings']['gecko']['id']=='heartline@jpluker.com'; assert 'nativeMessagingFromContent' in m['permissions']; print('manifest ok, version', m['version'])"
           ls -l "$apk"
+      - name: Build signed release APK
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          KS: ${{ secrets.SPOTIFYALT_ANDROID_KEYSTORE_B64 }}
+          SPOTIFYALT_STORE_PASSWORD: ${{ secrets.SPOTIFYALT_ANDROID_STORE_PASSWORD }}
+          SPOTIFYALT_KEY_PASSWORD: ${{ secrets.SPOTIFYALT_ANDROID_KEY_PASSWORD }}
+          SPOTIFYALT_KEY_ALIAS: ${{ secrets.SPOTIFYALT_ANDROID_KEY_ALIAS }}
+        run: |
+          export SPOTIFYALT_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+          printf '%s' "$KS" | base64 -d > "$SPOTIFYALT_KEYSTORE_FILE"
+          gradle :app:assembleRelease
+          rm -f "$SPOTIFYALT_KEYSTORE_FILE"
+      - name: Verify the release signer
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          FP: ${{ secrets.SPOTIFYALT_ANDROID_CERT_SHA256 }}
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          test -s "$apk"
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          out=$("$bt/apksigner" verify --print-certs "$apk")
+          got=$(grep -E '^Signer #1 certificate SHA-256 digest: [0-9a-f]{64}$' <<<"$out" | awk '{print $NF}')
+          [[ -n "$got" ]] || { echo "::error::Couldn't read the APK's signer"; exit 1; }
+          [[ "$got" == "$FP" ]] || { echo "::error::APK signed with the wrong key. Expected $FP, got $got"; exit 1; }
+          dbg=$("$ANDROID_HOME"/cmdline-tools/latest/bin/apkanalyzer manifest debuggable "$apk")
+          [[ "$dbg" == "false" ]] || { echo "::error::Release APK is debuggable"; exit 1; }
+          echo "Signer ok: $got"
       - name: Name the APK
         run: |
           v=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           mkdir -p out && cp app/build/outputs/apk/debug/app-debug.apk "out/SpotifyAlt-$v-Android-arm64-debug.apk"
+          rel=app/build/outputs/apk/release/app-release.apk
+          if [[ -s "$rel" ]]; then cp "$rel" "out/SpotifyAlt-$v-Android-arm64.apk"; fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: spotifyalt-debug
