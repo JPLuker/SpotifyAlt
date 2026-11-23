@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.4';
+  const VERSION = '0.2.5';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -738,11 +738,12 @@
     if (child.id === 'main-view') return 'main';
     if (child.id === 'lyrics-cinema') return 'overlay';
     if (child.matches('[data-testid="now-playing-bar"]') || child.querySelector(`[data-testid="now-playing-bar"], ${SEL.playPause}`)) return 'bar';
+    // Decide by content, never by size: our own hiding makes hidden panels measure zero,
+    // and a size test would flip them back and forth.
+    if (child.querySelector('#floating-ui-popover-layer, [class*="modal"], [role="dialog"]')) return 'overlay';
+    if (child.childElementCount === 0 && !child.textContent.trim()) return 'overlay';
     const pos = getComputedStyle(child).position;
     if (pos === 'absolute' || pos === 'fixed') return 'overlay';
-    // Zero-size wrappers hold Spotify's menus, dialogs and popovers: never hide those.
-    if (child.offsetWidth === 0 || child.offsetHeight === 0) return 'overlay';
-    if (child.querySelector('#floating-ui-popover-layer, [class*="modal"], [role="dialog"]')) return 'overlay';
     return 'side';
   }
 

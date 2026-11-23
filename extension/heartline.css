@@ -432,9 +432,9 @@ html.hl-phone [data-hl-slot='nav'] {
   flex: 0 0 auto !important;
   width: 100% !important;
   min-width: 0 !important;
+  height: auto !important;
+  min-height: 64px;
   box-sizing: border-box;
-  padding: 8px 12px !important;
-  overflow: hidden;
 }
 
 html.hl-phone [data-hl-slot='main'] {

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.5] — 2026-11-23
+### Changed
+- Shared page script update for the Android phone layout (no desktop change).
+
 ## [0.2.4] — 2026-11-23
 ### Changed
 - Shared page script update for the Android phone layout (no desktop change).

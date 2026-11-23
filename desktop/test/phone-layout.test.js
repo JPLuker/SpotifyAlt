@@ -43,8 +43,7 @@ test('Android: Spotify\'s grid becomes nav, page and player bar', async () => {
   assert.equal(slot('#main-view'), 'main');
   assert.equal(slot('[data-testid="now-playing-bar"]'), 'bar');
   assert.equal(slot('#lyrics-cinema'), 'overlay');
-  // jsdom has no layout, so every element is zero-size here: wrappers count as overlays.
-  assert.equal(slot('.rr3AwF0UoO45NOY__aIz'), 'overlay');
+  assert.equal(slot('.rr3AwF0UoO45NOY__aIz'), 'overlay', 'empty wrapper');
   assert.equal(slot('.d4YjdCUuq2sWZzXX_4i4'), 'overlay', 'modal layers are never hidden');
   assert.ok(d.querySelector('[data-testid="root"] > div').hasAttribute('data-hl-shell'));
 });
@@ -111,18 +110,21 @@ test('diagnostics: errors are kept, tokens are not', async () => {
   assert.match(text, /Layout: .*main:main-view/);
 });
 
-test('Android: a visible extra panel is hidden, an empty wrapper is not', async () => {
-  const dom = new JSDOM(PAGE.replace('<div class="rr3AwF0UoO45NOY__aIz"></div>', '<div class="rr3AwF0UoO45NOY__aIz big">right panel</div>'), {
-    url: 'https://open.spotify.com/', runScripts: 'outside-only',
-  });
-  const w = dom.window;
-  for (const prop of ['offsetWidth', 'offsetHeight']) {
-    Object.defineProperty(w.HTMLElement.prototype, prop, { get() { return this.classList.contains('big') ? 300 : 0; } });
-  }
-  w.__HEARTLINE_PLATFORM__ = 'android';
-  w.fetch = async () => ({ ok: true, status: 200, json: async () => ({ data: {} }) });
-  w.eval(SCRIPT);
+test('Android: a panel with content is hidden and stays hidden across rescans', async () => {
+  const { w, d } = (() => {
+    const dom = new JSDOM(PAGE.replace('<div class="rr3AwF0UoO45NOY__aIz"></div>', '<div class="panel"><p>Preview of Spotify</p></div>'), {
+      url: 'https://open.spotify.com/', runScripts: 'outside-only',
+    });
+    dom.window.__HEARTLINE_PLATFORM__ = 'android';
+    dom.window.fetch = async () => ({ ok: true, status: 200, json: async () => ({ data: {} }) });
+    dom.window.eval(SCRIPT);
+    return { w: dom.window, d: dom.window.document };
+  })();
   await tick();
-  assert.equal(w.document.querySelector('.big').getAttribute('data-hl-slot'), 'side');
-  assert.equal(w.document.querySelector('.d4YjdCUuq2sWZzXX_4i4').getAttribute('data-hl-slot'), 'overlay');
+  assert.equal(d.querySelector('.panel').getAttribute('data-hl-slot'), 'side');
+  for (let i = 0; i < 3; i++) {
+    w.__heartline._layoutPhone();
+    assert.equal(d.querySelector('.panel').getAttribute('data-hl-slot'), 'side');
+  }
+  assert.equal(d.querySelector('.d4YjdCUuq2sWZzXX_4i4').getAttribute('data-hl-slot'), 'overlay');
 });
