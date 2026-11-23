@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Handler
@@ -15,16 +16,17 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
-import org.json.JSONObject
 import java.net.URL
+import android.util.Log
 import kotlin.concurrent.thread
 
 class SpotifyAltService : Service() {
     companion object {
-        const val ACTION_START = "com.jpluker.spotifyalt.START"
-        const val ACTION_UPDATE = "com.jpluker.spotifyalt.UPDATE"
-        const val EXTRA_STATE = "media_state"
+        /** True while the service exists; PlayerSession only starts it once. */
+        @Volatile var running = false
+            private set
 
         private const val CHANNEL_ID = "spotifyalt_media"
         private const val NOTIFICATION_ID = 1701
@@ -38,11 +40,11 @@ class SpotifyAltService : Service() {
     private val handler = Handler(Looper.getMainLooper())
 
     @Volatile private var title = "SpotifyAlt"
-    @Volatile private var artist = "Waiting for web player"
+    @Volatile private var artist = ""
     @Volatile private var trackUri: String? = null
     @Volatile private var artUrl: String? = null
     @Volatile private var artwork: Bitmap? = null
-    @Volatile private var liked = false
+    @Volatile private var liked: Boolean? = null
     @Volatile private var playing = false
     @Volatile private var positionMs = 0L
     @Volatile private var durationMs = 0L
@@ -66,15 +68,23 @@ class SpotifyAltService : Service() {
             isActive = true
         }
 
+        running = true
         publishState()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        ServiceCompat.startForeground(
+            this,
+            NOTIFICATION_ID,
+            buildNotification(),
+            if (android.os.Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0,
+        )
+        PlayerSession.addListener(stateListener)
     }
+
+    private val stateListener: (PlayerState) -> Unit = { state -> handler.post { applyState(state) } }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_UPDATE -> intent.getStringExtra(EXTRA_STATE)?.let(::applyWebState)
             ACTION_PREVIOUS -> sendToWeb("previous")
-            ACTION_TOGGLE -> sendToWeb(if (playing) "pause" else "play")
+            ACTION_TOGGLE -> sendToWeb("toggle")
             ACTION_NEXT -> sendToWeb("next")
             ACTION_HEART -> toggleHeart()
         }
@@ -84,26 +94,26 @@ class SpotifyAltService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        running = false
+        PlayerSession.removeListener(stateListener)
         session.isActive = false
         session.release()
         super.onDestroy()
     }
 
-    private fun applyWebState(raw: String) {
-        val json = runCatching { JSONObject(raw) }.getOrNull() ?: return
-        title = json.optString("title", title).ifBlank { "SpotifyAlt" }
-        artist = json.optString("artist", artist).ifBlank { "Unknown artist" }
-        trackUri = json.optString("uri").takeIf { it.startsWith("spotify:track:") }
-        liked = json.optBoolean("liked", liked)
-        playing = json.optBoolean("playing", false)
-        positionMs = json.optLong("positionMs", 0L).coerceAtLeast(0L)
-        durationMs = json.optLong("durationMs", 0L).coerceAtLeast(0L)
+    private fun applyState(state: PlayerState) {
+        title = state.title.ifBlank { "SpotifyAlt" }
+        artist = state.artist
+        trackUri = state.uri
+        liked = state.liked
+        playing = state.playing
+        positionMs = state.positionMs
+        durationMs = state.durationMs
 
-        val newArtUrl = json.optString("artUrl").takeIf { it.startsWith("https://") }
-        if (newArtUrl != artUrl) {
-            artUrl = newArtUrl
+        if (state.artworkUrl != artUrl) {
+            artUrl = state.artworkUrl
             artwork = null
-            if (newArtUrl != null) loadArtwork(newArtUrl)
+            state.artworkUrl?.let(::loadArtwork)
         }
 
         publishState()
@@ -111,23 +121,12 @@ class SpotifyAltService : Service() {
     }
 
     private fun sendToWeb(command: String) {
-        WebRuntimeBridge.send(command)
+        PlayerSession.command(command)
     }
 
+    /** The extension does the save or unsave with Spotify, then reports the new state back. */
     private fun toggleHeart() {
-        val uri = trackUri ?: return
-        val target = !liked
-        thread(name = "spotifyalt-heart") {
-            val changed = runCatching { SpotifyApi.setSaved(this, uri, target) }.getOrDefault(false)
-            if (!changed) return@thread
-
-            liked = target
-            WebRuntimeBridge.send("liked:$target")
-            handler.post {
-                publishState()
-                updateNotification()
-            }
-        }
+        sendToWeb("like")
     }
 
     private fun publishState() {
@@ -139,10 +138,11 @@ class SpotifyAltService : Service() {
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
                 PlaybackStateCompat.ACTION_SEEK_TO
 
+        val isLiked = liked == true
         val heartAction = PlaybackStateCompat.CustomAction.Builder(
             ACTION_HEART,
-            if (liked) "Remove from Liked Songs" else "Add to Liked Songs",
-            if (liked) R.drawable.ic_heart else R.drawable.ic_heart_outline
+            if (isLiked) "Remove from Liked Songs" else "Save to Liked Songs",
+            if (isLiked) R.drawable.ic_heart else R.drawable.ic_heart_outline
         ).build()
 
         session.setMetadata(
@@ -187,8 +187,8 @@ class SpotifyAltService : Service() {
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setOngoing(playing)
         .addAction(
-            if (liked) R.drawable.ic_heart else R.drawable.ic_heart_outline,
-            if (liked) "Unlike" else "Like",
+            if (liked == true) R.drawable.ic_heart else R.drawable.ic_heart_outline,
+            if (liked == true) "Remove from Liked Songs" else "Save to Liked Songs",
             action(ACTION_HEART, 4)
         )
         .addAction(android.R.drawable.ic_media_previous, "Previous", action(ACTION_PREVIOUS, 1))
@@ -226,7 +226,7 @@ class SpotifyAltService : Service() {
         thread(name = "spotifyalt-artwork") {
             val bitmap = runCatching {
                 URL(url).openStream().use(BitmapFactory::decodeStream)
-            }.getOrNull() ?: return@thread
+            }.onFailure { Log.w("SpotifyAlt", "Artwork didn't load", it) }.getOrNull() ?: return@thread
 
             if (artUrl != url) return@thread
             artwork = bitmap

@@ -1,0 +1,14 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Long-press the app icon: opens the restyle, heart and layout settings. -->
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_heart_outline"
+        android:shortcutShortLabel="@string/shortcut_settings_short"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="com.jpluker.spotifyalt.SETTINGS"
+            android:targetPackage="com.jpluker.spotifyalt"
+            android:targetClass="com.jpluker.spotifyalt.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -391,6 +391,13 @@ html.hl-qp ::-webkit-scrollbar-thumb:hover {
   background-color: var(--hl-border-strong);
 }
 
+/* Touch screens have no hover: empty hearts stay visible (DESIGN.md B10). */
+@media (hover: none) {
+  [data-testid='tracklist-row'] .hl-heart[aria-pressed='false'] {
+    opacity: 1;
+  }
+}
+
 /* 5. Optional: hide Premium and app download prompts ----------------------- */
 
 html.hl-hide-upsell [data-testid='upgrade-button'],

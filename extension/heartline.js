@@ -15,19 +15,21 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.1';
+  const VERSION = '0.2.2';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
   const PATHFINDER_PREFIX = 'https://api-partner.spotify.com/pathfinder/';
   const PATHFINDER_URL = 'https://api-partner.spotify.com/pathfinder/v2/query';
   const IN_APP = window.__HEARTLINE_APP__ === true;
+  const ANDROID = window.__HEARTLINE_PLATFORM__ === 'android';
 
   const DEFAULT_SETTINGS = Object.freeze({
     restyle: true,
     hearts: true,
     keepAddButton: false,
     hideUpsell: false,
+    phoneLayout: true, // Android only: lay the desktop site out at the phone's width
     customCss: '',
   });
 
@@ -533,6 +535,7 @@
       ['hearts', 'Heart buttons'],
       ['keepAddButton', 'Keep Spotify\'s + button too'],
       ['hideUpsell', 'Hide Premium and app download buttons'],
+      ...(ANDROID ? [['phoneLayout', 'Fit to phone width']] : []),
     ];
     const list = document.createElement('div');
     list.className = 'hl-panel-list';
@@ -615,9 +618,29 @@
 
   // ----------------------------------------------------------- apply settings
 
+  function applyViewport() {
+    if (!ANDROID) return;
+    const head = document.head;
+    if (!head) return;
+    let meta = document.getElementById('hl-viewport');
+    if (!settings.phoneLayout) {
+      if (meta) meta.remove();
+      return;
+    }
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.id = 'hl-viewport';
+      meta.name = 'viewport';
+      head.appendChild(meta);
+    }
+    meta.content = 'width=device-width, initial-scale=1';
+  }
+
   function applySettings() {
     const root = document.documentElement;
     if (!root) return;
+    applyViewport();
+    root.classList.toggle('hl-android', ANDROID);
     root.classList.toggle('hl-hide-upsell', !!settings.hideUpsell);
     root.classList.toggle('hl-qp', !!settings.restyle);
     let style = document.getElementById('hl-custom-css');
@@ -716,6 +739,7 @@
 
   function start() {
     applySettings();
+    if (ANDROID && !document.head) document.addEventListener('DOMContentLoaded', applyViewport, { once: true });
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,

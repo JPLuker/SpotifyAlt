@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.2] — 2026-11-23
+### Changed
+- On touch screens the empty heart stays visible on every row (there's no hover).
+- The page script also runs in the Android app (phone-width layout option there).
+
 ## [0.2.1] — 2026-11-23
 ### Fixed
 - Windows builds no longer fail without an app icon. The MSI waits for the icon; the installer and portable `.exe` build now.

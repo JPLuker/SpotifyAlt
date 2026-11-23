@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SpotifyAlt</string>
+    <string name="shortcut_settings_short">Heartline settings</string>
+    <string name="shortcut_settings_long">Heartline settings</string>
+</resources>

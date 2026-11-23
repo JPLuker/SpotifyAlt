@@ -1,0 +1,20 @@
+{
+  "browser_specific_settings": { "gecko": { "id": "heartline@jpluker.com" } },
+  "permissions": ["nativeMessaging", "nativeMessagingFromContent", "geckoViewAddons"],
+  "content_scripts": [
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["android-flag.js", "heartline.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["android-bridge.js"],
+      "css": ["heartline.css"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

@@ -3,9 +3,9 @@ name: Desktop CI
 on:
   push:
     branches: [main]
-    paths: ['desktop/**', 'extension/**', '.github/workflows/desktop.yml']
+    paths: ['desktop/**', 'extension/**', 'app/src/main/heartline-android/**', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['desktop/**', 'extension/**', '.github/workflows/desktop.yml']
+    paths: ['desktop/**', 'extension/**', 'app/src/main/heartline-android/**', '.github/workflows/desktop.yml']
   workflow_dispatch:
 
 permissions:
