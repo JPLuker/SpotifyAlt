@@ -21,7 +21,7 @@ for _ in $(seq 1 90); do
   if adb logcat -d -s SpotifyAlt:I | grep -q "Heartline connected"; then connected=yes; break; fi
   sleep 2
 done
-sleep 15 # let the page settle and the Widevine check finish
+sleep 20 # let the page settle; the layout report comes 12 s after load
 
 adb exec-out screencap -p > "$out/emulator-player.png"
 adb logcat -d > "$out/logcat.txt"
@@ -49,6 +49,8 @@ if [[ "$connected" != yes ]]; then
   echo "::error::The Heartline extension never connected to the app"
   exit 1
 fi
+echo "--- layout report"
+grep -o "Heartline layout [0-9]*: .*" "$out/logcat.txt" || echo "(none)"
 diag=$(grep -o "Heartline diag: .*" "$out/logcat.txt" | tail -n 1 || true)
 if [[ -z "$diag" ]]; then
   echo "::error::No Widevine check result in the log"
@@ -60,6 +62,9 @@ if [[ "$diag" == *"widevine=true"* ]]; then
 else
   # Emulator images don't always ship Widevine; the phone is the real test. Flag it, don't fail.
   echo "::warning::Widevine not available on this emulator: $diag"
+fi
+if grep -q "google-analytics.com/g/collect" "$out/logcat.txt"; then
+  echo "::warning::Google Analytics still loaded; tracker blocking isn't catching it"
 fi
 if grep -qE "FATAL EXCEPTION|Page process crashed" "$out/logcat.txt"; then
   echo "::error::Crash in the log"

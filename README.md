@@ -28,6 +28,8 @@ Install the APK from the latest "Android CI" run (Actions tab, `spotifyalt-debug
 | `*.spotify.com`, `*.scdn.co`, `*.spotifycdn.com` | While you use it | The same requests Spotify's web player makes. Heartline adds Liked Songs lookups and saves to `api-partner.spotify.com`, using the sign-in token Spotify's own page already sends. The media card loads album art from Spotify's image server. |
 | Google's Widevine services | When playback starts | Android's DRM system fetches licenses for Spotify's protected audio, the same as any browser. |
 
+On Android, Firefox's tracker blocking is on, with analytics added, so Spotify's page can't send your listening to Google Analytics. Ads aren't blocked.
+
 The Spotify token stays in memory and is never saved or sent anywhere but Spotify. Settings stay on your phone. No analytics, no tracking.
 
 ## Build

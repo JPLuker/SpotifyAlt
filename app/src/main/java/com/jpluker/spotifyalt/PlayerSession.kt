@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -100,8 +101,15 @@ object PlayerSession {
               dom.media.mediasession.enabled: true
             """.trimIndent() + "\n"
         )
+        // Firefox's tracker lists, plus analytics (Spotify's page loads Google Analytics).
+        // Ads are left alone so Spotify's free tier keeps playing.
+        val blocking = ContentBlocking.Settings.Builder()
+            .antiTracking(ContentBlocking.AntiTracking.DEFAULT or ContentBlocking.AntiTracking.ANALYTIC)
+            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.DEFAULT)
+            .build()
         val settings = GeckoRuntimeSettings.Builder()
             .configFilePath(config.absolutePath)
+            .contentBlocking(blocking)
             .consoleOutput(BuildConfig.DEBUG)
             .remoteDebuggingEnabled(BuildConfig.DEBUG)
             .build()
@@ -318,11 +326,21 @@ object PlayerSession {
                 }
                 "hello" -> Log.i(TAG, "Heartline connected")
                 "diag" -> json.optJSONObject("diag")?.let { d ->
-                    Log.i(
-                        TAG,
-                        "Heartline diag: widevine=${d.optBoolean("widevine")} " +
-                            "keySystem=${d.optString("keySystem").take(40)} error=${d.optString("error").take(120)}",
-                    )
+                    val layout = d.optJSONObject("layout")
+                    if (layout != null) {
+                        // Debug builds only: the page outline is long, so it's logged in chunks.
+                        if (BuildConfig.DEBUG) {
+                            layout.toString().chunked(3000).forEachIndexed { i, part ->
+                                Log.i(TAG, "Heartline layout $i: $part")
+                            }
+                        }
+                    } else {
+                        Log.i(
+                            TAG,
+                            "Heartline diag: widevine=${d.optBoolean("widevine")} " +
+                                "keySystem=${d.optString("keySystem").take(40)} error=${d.optString("error").take(120)}",
+                        )
+                    }
                 }
             }
         }
