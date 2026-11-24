@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.7';
+  const VERSION = '0.2.8';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -779,8 +779,10 @@
       }
       const nav = shell.querySelector(':scope > [data-hl-slot="nav"]');
       const bar = shell.querySelector(':scope > [data-hl-slot="bar"]');
-      root.style.setProperty('--hl-nav-h', `${nav ? nav.offsetHeight : 0}px`);
-      root.style.setProperty('--hl-bar-h', `${bar ? bar.offsetHeight : 0}px`);
+      const navH = `${nav ? Math.ceil(nav.getBoundingClientRect().bottom) : 0}px`;
+      const barH = `${bar ? Math.ceil(window.innerHeight - bar.getBoundingClientRect().top) : 0}px`;
+      if (root.style.getPropertyValue('--hl-nav-h') !== navH) root.style.setProperty('--hl-nav-h', navH);
+      if (root.style.getPropertyValue('--hl-bar-h') !== barH) root.style.setProperty('--hl-bar-h', barH);
     }
     // Player bar: track on one row, controls on the next, extras (volume, devices) hidden.
     const widget = document.querySelector(SEL.nowPlayingWidget);
