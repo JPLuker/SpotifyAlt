@@ -75,7 +75,7 @@ if not parts:
     print("::error::No layout report in the log"); sys.exit(1)
 d = json.loads("".join(parts[k] for k in sorted(parts)))
 for k in sorted(d):
-    if k != "outline":
+    if k not in ("outline", "bodyText"):
         print(f"{k} = {d[k]}")
 problems = []
 if not d.get("cssLoaded"): problems.append("Heartline CSS not loaded")

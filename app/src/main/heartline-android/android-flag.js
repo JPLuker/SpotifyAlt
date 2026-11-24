@@ -96,6 +96,18 @@ setTimeout(() => {
         mainBg: bg('#main-view'),
         navBg: bg('#global-nav-bar'),
         mainWidth: (document.getElementById('main-view') || { offsetWidth: null }).offsetWidth,
+        navBoxes: (() => {
+          const nav = document.getElementById('global-nav-bar');
+          if (!nav) return null;
+          const box = (el) => {
+            const r = el.getBoundingClientRect();
+            const cs = getComputedStyle(el);
+            return `${el.id || el.tagName.toLowerCase()}:${Math.round(r.top)}+${Math.round(r.height)} h=${cs.height} minh=${cs.minHeight} maxh=${cs.maxHeight} pos=${cs.position} ov=${cs.overflow}`;
+          };
+          const main = document.getElementById('main-view');
+          const login = nav.querySelector('[data-testid="login-button"], [data-testid="user-widget-link"], button');
+          return [box(nav), ...[...nav.children].map(box), login ? box(login) : 'no button', main ? box(main) : 'no main'];
+        })(),
         baseVar: theme ? getComputedStyle(theme).getPropertyValue('--background-base').trim() : null,
         outline,
       },

@@ -437,6 +437,8 @@ html.hl-phone [data-hl-slot='nav'] {
   box-sizing: border-box;
   padding-block: 8px !important;
   overflow: visible !important;
+  position: relative !important;
+  z-index: 2;
 }
 
 /* Spotify's nav rows have a fixed desktop height; with larger display sizes the buttons
@@ -451,6 +453,8 @@ html.hl-phone [data-hl-slot='nav'] > * > * {
 
 html.hl-phone [data-hl-slot='main'] {
   order: 1;
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto !important;
   min-height: 0 !important;
   width: 100% !important;
