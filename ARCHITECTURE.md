@@ -32,8 +32,12 @@ SpotifyAltService: Android MediaSession + media notification (with the heart)
 4. **The page is untrusted input.** Messages from it are shape-checked (`PlayerState.fromExtension`).
 5. **Only Spotify and sign-in pages load in the app.** Everything else opens in the browser; app links (`spotify:`, `intent:`) go nowhere (`UrlPolicy`).
 
-## Known risks to check on a phone
+## Confirmed on Joseph's Pixel (2026-11-23, v0.3.7)
 
-- Widevine through Android's MediaDrm in GeckoView: the permission is granted for open.spotify.com, and prefs are set through GeckoView's config file (read in debuggable builds).
+Signed in and played a playlist past 30 seconds: Widevine through Android's MediaDrm works in GeckoView. What made it work: the desktop user agent plus reporting a desktop platform and no touch points to page scripts (`android-flag.js`). Spotify officially blocks its web player on phones, so if playback breaks after a Spotify update, check that first.
+
+## Known risks still to check on a phone
+
+- Release builds: the EME prefs are set through GeckoView's config file, which may only be read in debuggable builds. Check playback on the first signed release.
 - Background playback while the screen is off.
 - Whether Spotify's desktop layout is usable at phone width.

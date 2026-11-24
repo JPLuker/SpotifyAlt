@@ -239,3 +239,22 @@ test('runs once even if injected twice', () => {
   w.eval(SCRIPT);
   assert.equal(w.__heartline, api);
 });
+
+test('now-playing heart finds the track from any link in the widget', async () => {
+  const dom = new JSDOM(`<!doctype html><body><div data-testid="now-playing-widget"><a href="/album/x">Album</a><a data-testid="context-item-link" href="/track/AAAAAAAAAAAAAAAAAAAAAA">Song</a><div><button aria-label="Add to playlist"></button></div></div></body>`, {
+    url: 'https://open.spotify.com/', runScripts: 'outside-only',
+  });
+  const w = dom.window;
+  w.fetch = async (u, init) => {
+    const body = JSON.parse(init.body || '{}');
+    const uris = (body.variables && body.variables.uris) || [];
+    return { ok: true, status: 200, json: async () => ({ data: { lookup: uris.map(() => ({ data: { saved: true } })) } }) };
+  };
+  w.eval(SCRIPT);
+  await w.fetch('https://api-partner.spotify.com/pathfinder/v2/query', { headers: { authorization: 'Bearer T' }, body: '{}' });
+  await tick(150);
+  const heart = w.document.querySelector('.hl-heart');
+  assert.ok(heart, 'heart in the now-playing bar');
+  assert.equal(heart.dataset.hlUri, A);
+  assert.equal(heart.getAttribute('aria-pressed'), 'true');
+});

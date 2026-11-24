@@ -10,6 +10,20 @@
 
 Newest first. Copy the block below for each new lesson.
 
+### 2026-11-23 · Test the blocker before polishing around it
+- **What happened:** two rounds went into the Android phone layout before anyone knew whether Spotify would play on a phone at all (it officially blocks its web player there). Joseph's verdict on the second round was "Unusable". The deciding test was one sign-in and one song.
+- **Lesson:** when a third party can refuse the core feature, prove the core feature on the real device first, then build the layout around it.
+- **Applies to:** every project
+- **What we changed:** the emulator test now checks the live site, and the phone test request went to "sign in and play one song" before more layout work.
+- **Harvested:** no
+
+### 2026-11-23 · Ask the live page, not the docs
+- **What happened:** the restyle targeted Spotify's `Root__` classes from community themes; the live site had moved to `#main-view` and put its theme class on `<html>`. A debug-only layout report from the emulator showed it in one run.
+- **Lesson:** for code that rides on someone else's markup, build a way to dump the real structure from the real environment, and read it before writing selectors.
+- **Applies to:** every project
+- **What we changed:** the "Heartline layout" debug report and the emulator check on page width and restyle colors.
+- **Harvested:** no
+
 <!--
 ### YYYY-MM-DD · <short title, a few words>
 - **What happened:** what went wrong (or right), with the version and file if it helps. Two or three lines.

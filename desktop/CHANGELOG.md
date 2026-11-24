@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.7] — 2026-11-23
+### Fixed
+- The now-playing heart finds the current song from any track link in the bar, not only the old context link.
+
 ## [0.2.6] — 2026-11-23
 ### Changed
 - Shared page script: the Android phone layout only touches the desktop player's markup.

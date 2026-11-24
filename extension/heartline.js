@@ -15,7 +15,7 @@
   'use strict';
   if (window.__heartline) return;
 
-  const VERSION = '0.2.6';
+  const VERSION = '0.2.7';
   const LOG = '[Heartline]';
   const SETTINGS_KEY = 'heartline.settings';
   const HASHES_KEY = 'heartline.queryHashes';
@@ -357,7 +357,16 @@
   function currentTrackUri() {
     if (dealerTrackUri) return dealerTrackUri;
     const link = document.querySelector(SEL.nowPlayingLink);
-    return link ? trackUriFromHref(link.getAttribute('href')) : null;
+    const fromLink = link ? trackUriFromHref(link.getAttribute('href')) : null;
+    if (fromLink) return fromLink;
+    // Spotify's bar markup changes; any link in the widget that names a track will do.
+    const widget = document.querySelector(SEL.nowPlayingWidget);
+    if (!widget) return null;
+    for (const a of widget.querySelectorAll('a[href]')) {
+      const uri = trackUriFromHref(a.getAttribute('href'));
+      if (uri) return uri;
+    }
+    return null;
   }
 
   // ------------------------------------------------------------ library state
