@@ -81,6 +81,15 @@ problems = []
 if not d.get("cssLoaded"): problems.append("Heartline CSS not loaded")
 if (d.get("innerWidth") or 9999) > 500: problems.append(f"page is {d.get('innerWidth')} px wide, should be about the screen width")
 if d.get("mainBg") not in ("rgb(25, 25, 24)", None): problems.append(f"restyle not on the main view ({d.get('mainBg')})")
+# Nav must sit fully above the page: nav top + height <= main top.
+boxes = d.get("navBoxes") or []
+try:
+    nav_top, nav_h = map(float, boxes[0].split(":")[1].split(" ")[0].split("+"))
+    main_top = float(boxes[-1].split(":")[1].split("+")[0])
+    if nav_top < 0 or nav_top + nav_h > main_top + 1:
+        problems.append(f"nav ({nav_top}+{nav_h}) overlaps the page (starts at {main_top})")
+except (IndexError, ValueError) as err:
+    print(f"::warning::Couldn't read nav boxes: {err}")
 if d.get("baseVar", "").lower() not in ("#191918", "rgb(25, 25, 24)", "var(--hl-surface)"): print(f"::warning::--background-base on the theme root is {d.get('baseVar')}")
 for p in problems: print(f"::error::{p}")
 sys.exit(1 if problems else 0)
@@ -88,7 +97,10 @@ PY
 if grep -q "google-analytics.com/g/collect" "$out/logcat.txt"; then
   echo "::warning::Google Analytics still loaded; tracker blocking isn't catching it"
 fi
-if grep -qE "FATAL EXCEPTION|Page process crashed" "$out/logcat.txt"; then
+# Only our own crashes count; the emulator's launcher sometimes crashes on its own.
+if grep -A3 "FATAL EXCEPTION" "$out/logcat.txt" | grep -q "Process: com.jpluker.spotifyalt" \
+  || grep -q "Page process crashed" "$out/logcat.txt"; then
+  grep -A12 "FATAL EXCEPTION" "$out/logcat.txt" | head -40
   echo "::error::Crash in the log"
   exit 1
 fi

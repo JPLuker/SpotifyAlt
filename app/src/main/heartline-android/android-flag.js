@@ -102,7 +102,7 @@ setTimeout(() => {
           const box = (el) => {
             const r = el.getBoundingClientRect();
             const cs = getComputedStyle(el);
-            return `${el.id || el.tagName.toLowerCase()}:${Math.round(r.top)}+${Math.round(r.height)} h=${cs.height} minh=${cs.minHeight} maxh=${cs.maxHeight} pos=${cs.position} ov=${cs.overflow}`;
+            return `${el.id || el.tagName.toLowerCase()}:${Math.round(r.top)}+${Math.round(r.height)} h=${cs.height} m=${cs.margin} pos=${cs.position}`;
           };
           const main = document.getElementById('main-view');
           const login = nav.querySelector('[data-testid="login-button"], [data-testid="user-widget-link"], button');

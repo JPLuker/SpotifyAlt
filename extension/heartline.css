@@ -436,6 +436,8 @@ html.hl-phone [data-hl-slot='nav'] {
   min-height: 64px;
   box-sizing: border-box;
   padding-block: 8px !important;
+  /* Spotify pulls the nav up 8 px and the page up under it; on a phone that hid the buttons. */
+  margin: 0 !important;
   overflow: visible !important;
   position: relative !important;
   z-index: 2;
@@ -455,6 +457,8 @@ html.hl-phone [data-hl-slot='main'] {
   order: 1;
   position: relative;
   z-index: 1;
+  top: 0 !important;
+  inset-block-start: 0 !important;
   flex: 1 1 auto !important;
   min-height: 0 !important;
   width: 100% !important;
