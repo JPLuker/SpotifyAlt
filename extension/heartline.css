@@ -420,6 +420,10 @@ html.hl-phone [data-testid='root'] {
 html.hl-phone [data-hl-shell] {
   display: flex !important;
   flex-direction: column !important;
+  /* If Spotify's grid still wins, these rows give the same order. */
+  grid-template-areas: none !important;
+  grid-template-columns: 100% !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
   width: 100vw !important;
   min-width: 0 !important;
   height: 100dvh !important;
@@ -429,6 +433,9 @@ html.hl-phone [data-hl-shell] {
 
 html.hl-phone [data-hl-slot='nav'] {
   order: 0;
+  grid-area: auto !important;
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
   flex: 0 0 auto !important;
   width: 100% !important;
   min-width: 0 !important;
@@ -455,6 +462,9 @@ html.hl-phone [data-hl-slot='nav'] > * > * {
 
 html.hl-phone [data-hl-slot='main'] {
   order: 1;
+  grid-area: auto !important;
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
   position: relative;
   z-index: 1;
   top: 0 !important;
@@ -470,6 +480,9 @@ html.hl-phone [data-hl-slot='main'] {
 
 html.hl-phone [data-hl-slot='bar'] {
   order: 2;
+  grid-area: auto !important;
+  grid-column: 1 / -1 !important;
+  grid-row: 3 !important;
   flex: 0 0 auto !important;
   width: 100% !important;
   min-width: 0 !important;

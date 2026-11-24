@@ -106,7 +106,10 @@ setTimeout(() => {
           };
           const main = document.getElementById('main-view');
           const login = nav.querySelector('[data-testid="login-button"], [data-testid="user-widget-link"], button');
-          return [box(nav), ...[...nav.children].map(box), login ? box(login) : 'no button', main ? box(main) : 'no main'];
+          const shell = nav.parentElement;
+          const scs = getComputedStyle(shell);
+          const shellInfo = `shell display=${scs.display} rows=${scs.gridTemplateRows} hl=${shell.hasAttribute('data-hl-shell')}`;
+          return [box(nav), ...[...nav.children].map(box), login ? box(login) : 'no button', shellInfo, main ? box(main) : 'no main'];
         })(),
         baseVar: theme ? getComputedStyle(theme).getPropertyValue('--background-base').trim() : null,
         outline,
